@@ -3,8 +3,8 @@ import { fetchApp, fetchSimilarApps } from "./scrapper.js";
 import pLimit from "p-limit";
 import { AppUpdateService } from "./services/update.service.js";
 
-const CONCURRENCY = 40;
-const twoDaysAgo = new Date(Date.now() - 100 * 60 * 1000); // 1 days in ms
+const CONCURRENCY = 200;
+const twoDaysAgo = new Date(Date.now() - 5 * 60 * 60 * 1000); // 1 days in ms
 const last = new Date();
 export async function processApps(batchSize: number, skip: number) {
   const apps = await G_Apps.find(

@@ -23,7 +23,7 @@ async function main() {
   const index = parseInt(process.env.INDEX as string);
   let skip = limit*index;
   console.log(`configuration: limit: ${limit}, index:${index}, skip:${skip}`);
-  const batchSize = 400;
+  const batchSize = 1500;
   let processedCount = 0;
   const statsInterval = setInterval(() => {
   const { formatted } = getTimePassed(startFun, new Date());
