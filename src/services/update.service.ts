@@ -149,13 +149,11 @@ export class AppUpdateService {
   public createAppSyntax(app: App) {
     let type = "APP";
     if (
-      app.categories?.map((category: { name: string; id: string }) =>
-        APP_CATEGORIES.includes(category.name)
-      )
+      app.categories?.some((category) => APP_CATEGORIES.includes(category.name))
     ) {
       type = "APP";
     } else if (
-      app.categories?.map((category: { name: string; id: string }) =>
+      app.categories?.some((category: { name: string; id: string }) =>
         GAME_CATEGORIES.includes(category.name)
       )
     ) {
@@ -716,13 +714,13 @@ export class AppUpdateService {
   private updateType(app: App, dbApp: GApp, updates: Updates): void {
     let type = "APP";
     if (
-      app.categories?.map((category: { name: string; id: string }) =>
+      app.categories?.some((category: { name: string; id: string }) =>
         APP_CATEGORIES.includes(category.name)
       )
     ) {
       type = "APP";
     } else if (
-      app.categories?.map((category: { name: string; id: string }) =>
+      app.categories?.some((category: { name: string; id: string }) =>
         GAME_CATEGORIES.includes(category.name)
       )
     ) {

@@ -10,7 +10,7 @@ export async function fetchApp(appId: string) {
   const data = await withRetry(async () => {
     const proxy = getNextProxy();
     const headers = generateGooglePlayHeaders();
-    const url = `${BASE}/api/apps/${appId}?proxy=${proxy}`;
+    const url = `${BASE}/api/apps/${appId}`;
 
     const res = await axios.get(url, {
       timeout: 10000,
@@ -34,7 +34,7 @@ export async function fetchSimilarApps(appId: string) {
     const proxy = getNextProxy();
     const headers = generateGooglePlayHeaders();
 
-    const url = `${BASE}/api/apps/${appId}/similar?proxy=${proxy}`;
+    const url = `${BASE}/api/apps/${appId}/similar`;
 
     const res = await axios.get(url, {
       timeout: 10000,

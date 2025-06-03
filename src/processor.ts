@@ -3,7 +3,7 @@ import { fetchApp, fetchSimilarApps } from "./scrapper.js";
 import pLimit from "p-limit";
 import { AppUpdateService } from "./services/update.service.js";
 
-const CONCURRENCY = 200;
+const CONCURRENCY = 100;
 const twoDaysAgo = new Date(Date.now() - 5 * 60 * 60 * 1000); // 1 days in ms
 const last = new Date();
 export async function processApps(batchSize: number, skip: number) {
@@ -16,6 +16,7 @@ export async function processApps(batchSize: number, skip: number) {
     .lean();
   const limit = pLimit(CONCURRENCY);
   const newApps: any[] = [];
+  const seenNewAppIds = new Set();
   const updates: any[] = [];
   const tasks = apps.map((app) =>
     limit(async () => {
@@ -60,7 +61,7 @@ export async function processApps(batchSize: number, skip: number) {
           similarIds.push(id);
 
           const exists = await G_Apps.exists({ _id: id });
-          if (!exists) {
+          if (!exists && !seenNewAppIds.has(id)) {
             const similarData = await fetchApp(id);
             if (similarData?.message === "App not found (404)") {
               // App is suspended — mark it
@@ -68,6 +69,7 @@ export async function processApps(batchSize: number, skip: number) {
               return;
             }
             const appSyntax = updateService.createAppSyntax(similarData);
+            seenNewAppIds.add(id);
             newApps.push({
               updateOne: {
                 filter: { _id: appSyntax._id },
