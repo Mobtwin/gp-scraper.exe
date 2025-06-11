@@ -158,8 +158,9 @@ export async function processDevs(batchSize: number, skip: number) {
       let devId;
       if (/^[0-9]+$/.test(dev._id)) {
         devId = dev._id;
+      }else{
+        devId = dev.name;
       }
-      devId = dev.name;
       try {
         const apps = await fetchDev(devId);
 
