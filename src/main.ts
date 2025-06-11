@@ -21,7 +21,7 @@ async function main() {
   await connectToDb();
   const limit = parseInt(process.env.LIMIT as string);
   const index = parseInt(process.env.INDEX as string);
-  let skip = 0;
+  let skip = limit*index||0;
   console.log(`configuration: limit: ${limit}, index:${index}, skip:${skip}`);
   const batchSize = 1500;
   let processedCount = 0;
@@ -31,7 +31,7 @@ async function main() {
     stillDevs = await processDevs(batchSize, skip);
     skip += batchSize;
   }
-  skip = 0;
+  skip = limit*index||0;
   const statsInterval = setInterval(() => {
     const { formatted } = getTimePassed(startFun, new Date());
     console.log(`
