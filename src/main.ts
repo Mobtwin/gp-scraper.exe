@@ -29,6 +29,7 @@ async function main() {
   let stillApps = true;
   while (stillDevs) {
     stillDevs = await processDevs(batchSize, skip);
+    skip += batchSize;
   }
   skip = 0;
   const statsInterval = setInterval(() => {
