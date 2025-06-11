@@ -1,5 +1,5 @@
 import { connectToDb } from "./db.js";
-import { processApps } from "./processor.js";
+import { processApps, processDevs } from "./processor.js";
 import dotenv from "dotenv";
 dotenv.config();
 export function getTimePassed(start: Date, end: Date) {
@@ -21,14 +21,19 @@ async function main() {
   await connectToDb();
   const limit = parseInt(process.env.LIMIT as string);
   const index = parseInt(process.env.INDEX as string);
-  let skip = limit*index;
+  let skip = 0;
   console.log(`configuration: limit: ${limit}, index:${index}, skip:${skip}`);
   const batchSize = 1500;
   let processedCount = 0;
+  let stillDevs = true;
+  let stillApps = true;
+  while (stillDevs) {
+    stillDevs = await processDevs(batchSize, skip);
+  }
+  skip = 0;
   const statsInterval = setInterval(() => {
-  const { formatted } = getTimePassed(startFun, new Date());
-
-  console.log(`
+    const { formatted } = getTimePassed(startFun, new Date());
+    console.log(`
 ========= 🛰️ App Processing Stats =========
 🟢 Processed apps:   ${processedCount}
 ⛳ Start Time: ${startFun.toDateString()}
@@ -36,18 +41,22 @@ async function main() {
 ➡️  Current skip:     ${skip}
 ===========================================
 `);
-}, 60 * 1000);
-  while (true) {
+  }, 60 * 1000);
+  while (stillApps) {
     console.log(`Processing batch starting from skip ${skip}`);
     const start = new Date();
-    await processApps(batchSize, skip);
+    stillApps = await processApps(batchSize, skip);
     const end = new Date();
     console.log(`batch took : ${getTimePassed(start, end).formatted}`);
     // skip += batchSize;
     processedCount += batchSize;
   }
   const endFun = new Date();
-  console.log(`${processedCount} processed took : ${getTimePassed(startFun, endFun).formatted}`);
+  console.log(
+    `${processedCount} processed took : ${
+      getTimePassed(startFun, endFun).formatted
+    }`
+  );
   console.log("completed all!");
 }
 

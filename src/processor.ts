@@ -1,5 +1,5 @@
-import { G_Apps } from "./models/schema.js";
-import { fetchApp, fetchSimilarApps } from "./scrapper.js";
+import { G_Apps, G_DEVs } from "./models/schema.js";
+import { fetchApp, fetchDev, fetchSimilarApps } from "./scrapper.js";
 import pLimit from "p-limit";
 import { AppUpdateService } from "./services/update.service.js";
 
@@ -14,6 +14,9 @@ export async function processApps(batchSize: number, skip: number) {
     .skip(skip)
     .limit(batchSize)
     .lean();
+    if (!apps) {
+      return false;
+    }
   const limit = pLimit(CONCURRENCY);
   const newApps: any[] = [];
   const seenNewAppIds = new Set();
@@ -132,7 +135,85 @@ export async function processApps(batchSize: number, skip: number) {
       }
     }
   }
+  return true;
 }
+// processDevs.ts
+
+
+export async function processDevs(batchSize: number, skip: number) {
+  const devs = await G_DEVs.find({ accountState: true }, { _id: 1 })
+    .skip(skip)
+    .limit(batchSize)
+    .lean();
+
+  if (!devs) {
+    return false;
+  }
+
+  const limit = pLimit(CONCURRENCY);
+  const newApps: any[] = [];
+  const seenAppIds = new Set();
+
+  const tasks = devs.map((dev) =>
+    limit(async () => {
+      const devId = dev._id;
+      try {
+        const apps = await fetchDev(devId);
+
+        for (const app of apps || []) {
+          const appId = app.appId;
+          if (!appId || seenAppIds.has(appId)) continue;
+
+          const exists = await G_Apps.exists({ _id: appId });
+          if (exists) continue;
+
+          const appData = await fetchApp(appId);
+          if (!appData || appData?.message === 'App not found (404)') {
+            console.log(`⚠️ App ${appId} not found or suspended.`);
+            continue;
+          }
+
+          const updateService = new AppUpdateService();
+          const appSyntax = updateService.createAppSyntax(appData);
+          seenAppIds.add(appId);
+
+          newApps.push({
+            updateOne: {
+              filter: { _id: appSyntax._id },
+              update: { $setOnInsert: appSyntax },
+              upsert: true,
+            },
+          });
+
+          console.log(`🆕 New app from ${devId}: ${appId}`);
+        }
+      } catch (err: any) {
+        console.error(`❌ Error processing dev ${devId}:`, err.message);
+      }
+    })
+  );
+
+  await Promise.all(tasks);
+
+  if (newApps.length) {
+    try {
+      await G_Apps.bulkWrite(newApps, { ordered: false });
+      console.log(`💾 Bulk inserted ${newApps.length} new apps`);
+    } catch (err: any) {
+      if (
+        err.code === 11000 ||
+        err.writeErrors?.some((e: any) => e.code === 11000)
+      ) {
+        console.warn(`⚠️ Duplicate key errors ignored`);
+      } else {
+        console.error(`❌ Unexpected error inserting new apps:`, err);
+        throw err;
+      }
+    }
+  }
+  return true;
+}
+
 function timeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
     const id = setTimeout(() => reject(new Error("Timeout")), ms);

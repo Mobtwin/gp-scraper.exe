@@ -28,6 +28,28 @@ export async function fetchApp(appId: string) {
 
   return data;
 }
+export async function fetchDev(devId: string) {
+  const data = await withRetry(async () => {
+    const proxy = getNextProxy();
+    const headers = generateGooglePlayHeaders();
+    const url = `${BASE}/api/developers/${devId}`;
+
+    const res = await axios.get(url, {
+      timeout: 10000,
+      headers,
+      validateStatus: (status) => status < 500,
+    });
+
+    return res.data;
+  });
+
+  if (!data?.apps) {
+    // This is a normal (non-retriable) case
+    throw new Error("No data returned for app " + devId);
+  }
+
+  return data.apps;
+}
 
 export async function fetchSimilarApps(appId: string) {
   const data = await withRetry(async () => {
