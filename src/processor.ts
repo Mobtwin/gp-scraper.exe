@@ -156,7 +156,7 @@ export async function processDevs(batchSize: number, skip: number) {
   const tasks = devs.map((dev) =>
     limit(async () => {
       let devId;
-      if (typeof dev._id === "string" && /^[0-9]+$/.test(dev._id)) {
+      if (/^[0-9]+$/.test(dev._id)) {
         devId = dev._id;
       }
       devId = dev.name;
