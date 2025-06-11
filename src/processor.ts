@@ -14,9 +14,9 @@ export async function processApps(batchSize: number, skip: number) {
     .skip(skip)
     .limit(batchSize)
     .lean();
-    if (!apps) {
-      return false;
-    }
+  if (!apps) {
+    return false;
+  }
   const limit = pLimit(CONCURRENCY);
   const newApps: any[] = [];
   const seenNewAppIds = new Set();
@@ -139,9 +139,8 @@ export async function processApps(batchSize: number, skip: number) {
 }
 // processDevs.ts
 
-
 export async function processDevs(batchSize: number, skip: number) {
-  const devs = await G_DEVs.find({ accountState: true }, { _id: 1,name:1 })
+  const devs = await G_DEVs.find({ accountState: true }, { _id: 1, name: 1 })
     .skip(skip)
     .limit(batchSize)
     .lean();
@@ -156,7 +155,11 @@ export async function processDevs(batchSize: number, skip: number) {
 
   const tasks = devs.map((dev) =>
     limit(async () => {
-      const devId = dev.name;
+      let devId;
+      if (typeof dev._id === "string" && /^[0-9]+$/.test(dev._id)) {
+        devId = dev._id;
+      }
+      devId = dev.name;
       try {
         const apps = await fetchDev(devId);
 
@@ -168,7 +171,7 @@ export async function processDevs(batchSize: number, skip: number) {
           if (exists) continue;
 
           const appData = await fetchApp(appId);
-          if (!appData || appData?.message === 'App not found (404)') {
+          if (!appData || appData?.message === "App not found (404)") {
             console.log(`⚠️ App ${appId} not found or suspended.`);
             continue;
           }
