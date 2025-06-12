@@ -178,17 +178,7 @@ export async function processDevs(batchSize: number, skip: number) {
               },
             },
           });
-        } else {
-          updates.push({
-            updateOne: {
-              filter: { _id: dev._id },
-              update: {
-                $set: {
-                  updated_at: new Date(),
-                },
-              },
-            },
-          });
+          return;
         }
         for (const app of apps || []) {
           const appId = app.appId;
@@ -217,6 +207,16 @@ export async function processDevs(batchSize: number, skip: number) {
 
           console.log(`🆕 New app from ${devId}: ${appId}`);
         }
+        updates.push({
+          updateOne: {
+            filter: { _id: dev._id },
+            update: {
+              $set: {
+                updated_at: new Date(),
+              },
+            },
+          },
+        });
       } catch (err: any) {
         console.error(`❌ Error processing dev ${devId}:`, err.message);
       }
@@ -229,6 +229,7 @@ export async function processDevs(batchSize: number, skip: number) {
     try {
       await G_Apps.bulkWrite(newApps, { ordered: false });
       console.log(`💾 Bulk inserted ${newApps.length} new apps`);
+      newApps.length = 0;
     } catch (err: any) {
       if (
         err.code === 11000 ||
@@ -245,6 +246,7 @@ export async function processDevs(batchSize: number, skip: number) {
     try {
       await G_DEVs.bulkWrite(updates, { ordered: false });
       console.log(`💾 Bulk updated ${updates.length} devs`);
+      updates.length = 0;
     } catch (err: any) {
       if (
         err.code === 11000 ||

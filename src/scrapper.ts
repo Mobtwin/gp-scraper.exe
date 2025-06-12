@@ -45,11 +45,6 @@ export async function fetchDev(devId: string) {
     return res.data;
   });
 
-  if (!data?.apps) {
-    // This is a normal (non-retriable) case
-    throw new Error("No data returned for dev " + devId + "\n" + "fetch dev returned: " + JSON.stringify(data));
-  }
-
   return data.apps;
 }
 
