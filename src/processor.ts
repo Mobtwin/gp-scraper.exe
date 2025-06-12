@@ -168,7 +168,7 @@ export async function processDevs(batchSize: number, skip: number) {
           console.log(`⚠️ Dev ${devId} not found or suspended.`);
           updates.push({
             updateOne: {
-              filter: { _id: devId },
+              filter: { _id: dev._id },
               update: {
                 $set: {
                   removed: new Date(),
@@ -181,7 +181,7 @@ export async function processDevs(batchSize: number, skip: number) {
         } else {
           updates.push({
             updateOne: {
-              filter: { _id: devId },
+              filter: { _id: dev._id },
               update: {
                 $set: {
                   updated_at: new Date(),
