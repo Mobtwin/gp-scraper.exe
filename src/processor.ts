@@ -140,7 +140,7 @@ export async function processApps(batchSize: number, skip: number) {
 // processDevs.ts
 
 export async function processDevs(batchSize: number, skip: number) {
-  const devs = await G_DEVs.find({ accountState: true }, { _id: 1, name: 1 })
+  const devs = await G_DEVs.find({ updated_at: { $lt: twoDaysAgo },accountState: true }, { _id: 1, name: 1 })
     .skip(skip)
     .limit(batchSize)
     .lean();
@@ -151,6 +151,7 @@ export async function processDevs(batchSize: number, skip: number) {
 
   const limit = pLimit(CONCURRENCY);
   const newApps: any[] = [];
+  const updates: any[] = [];
   const seenAppIds = new Set();
 
   const tasks = devs.map((dev) =>
@@ -158,12 +159,37 @@ export async function processDevs(batchSize: number, skip: number) {
       let devId;
       if (/^[0-9]+$/.test(dev._id)) {
         devId = dev._id;
-      }else{
+      } else {
         devId = dev.name;
       }
       try {
         const apps = await fetchDev(devId);
-
+        if (apps?.message === "App not found (404)") {
+          console.log(`⚠️ Dev ${devId} not found or suspended.`);
+          updates.push({
+            updateOne: {
+              filter: { _id: devId },
+              update: {
+                $set: {
+                  removed: new Date(),
+                  updated_at: new Date(),
+                  accountState: false,
+                },
+              },
+            },
+          });
+        } else {
+          updates.push({
+            updateOne: {
+              filter: { _id: devId },
+              update: {
+                $set: {
+                  updated_at: new Date(),
+                },
+              },
+            },
+          });
+        }
         for (const app of apps || []) {
           const appId = app.appId;
           if (!appId || seenAppIds.has(appId)) continue;
@@ -211,6 +237,22 @@ export async function processDevs(batchSize: number, skip: number) {
         console.warn(`⚠️ Duplicate key errors ignored`);
       } else {
         console.error(`❌ Unexpected error inserting new apps:`, err);
+        throw err;
+      }
+    }
+  }
+  if (updates.length) {
+    try {
+      await G_DEVs.bulkWrite(updates, { ordered: false });
+      console.log(`💾 Bulk updated ${updates.length} devs`);
+    } catch (err: any) {
+      if (
+        err.code === 11000 ||
+        err.writeErrors?.some((e: any) => e.code === 11000)
+      ) {
+        console.warn(`⚠️ Duplicate key errors ignored`);
+      } else {
+        console.error(`❌ Unexpected error updating devs:`, err);
         throw err;
       }
     }

@@ -39,13 +39,15 @@ export async function fetchDev(devId: string) {
       headers,
       validateStatus: (status) => status < 500,
     });
-
+    if (res.data?.message && (res.data?.message !== "App not found (404)")) {
+      throw new Error(res.data.message);
+    }
     return res.data;
   });
 
   if (!data?.apps) {
     // This is a normal (non-retriable) case
-    throw new Error("No data returned for app " + devId);
+    throw new Error("No data returned for dev " + devId + "\n" + "fetch dev returned: " + JSON.stringify(data));
   }
 
   return data.apps;

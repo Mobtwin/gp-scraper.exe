@@ -21,28 +21,30 @@ async function main() {
   await connectToDb();
   const limit = parseInt(process.env.LIMIT as string);
   const index = parseInt(process.env.INDEX as string);
-  let skip = limit*index||0;
+  let skip = limit * index || 0;
   console.log(`configuration: limit: ${limit}, index:${index}, skip:${skip}`);
   const batchSize = 1500;
   let processedCount = 0;
   let stillDevs = true;
   let stillApps = true;
-  while (stillDevs) {
-    stillDevs = await processDevs(batchSize, skip);
-    skip += batchSize;
-  }
-  skip = limit*index||0;
   const statsInterval = setInterval(() => {
     const { formatted } = getTimePassed(startFun, new Date());
     console.log(`
-========= 🛰️ App Processing Stats =========
-🟢 Processed apps:   ${processedCount}
+========= 🛰️ ${!stillDevs ? "App" : "Dev"} Processing Stats =========
+🟢 Processed ${!stillDevs ? "apps" : "devs"}:   ${processedCount}
 ⛳ Start Time: ${startFun.toDateString()}
 ⏱️  Time elapsed:     ${formatted}
 ➡️  Current skip:     ${skip}
 ===========================================
 `);
   }, 60 * 1000);
+  while (stillDevs) {
+    stillDevs = await processDevs(batchSize, skip);
+    // skip += batchSize;
+    processedCount += batchSize;
+  }
+  skip = limit * index || 0;
+  processedCount = 0;
   while (stillApps) {
     console.log(`Processing batch starting from skip ${skip}`);
     const start = new Date();
