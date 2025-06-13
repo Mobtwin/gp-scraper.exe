@@ -23,7 +23,7 @@ async function main() {
   const index = parseInt(process.env.INDEX as string);
   let skip = limit * index || 0;
   console.log(`configuration: limit: ${limit}, index:${index}, skip:${skip}`);
-  const batchSize = 1500;
+  const batchSize = 1000;
   let processedCount = 0;
   let stillDevs = true;
   let stillApps = true;

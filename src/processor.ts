@@ -149,7 +149,7 @@ export async function processDevs(batchSize: number, skip: number) {
     return false;
   }
 
-  const limit = pLimit(CONCURRENCY);
+  const limit = pLimit(50);
   const newApps: any[] = [];
   const updates: any[] = [];
   const seenAppIds = new Set();
