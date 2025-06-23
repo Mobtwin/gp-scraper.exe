@@ -29,7 +29,11 @@ export async function fetchApp(appId: string) {
 
   return data;
 }
-export async function fetchDev(devId: string, isName: boolean) {
+export async function fetchDev(
+  devId: string,
+  devName: string,
+  isName: boolean
+) {
   if (!isName) {
     const data = await withRetry(async () => {
       const proxy = getNextProxy();
@@ -41,13 +45,39 @@ export async function fetchDev(devId: string, isName: boolean) {
         headers,
         validateStatus: (status) => status < 500,
       });
-      if (res.data?.message && res.data?.message !== "App not found (404)") {
+      if (
+        res.data?.message &&
+        res.data?.message !== "App not found (404)" &&
+        (res.data?.message as string).includes("fantasy-land/map")
+      ) {
         throw new Error(res.data.message);
       }
       return res.data;
     });
+    if (!(data?.message as string).includes("fantasy-land/map")) {
+      return data.apps;
+    }
+    const dataName = await withRetry(async () => {
+      const proxy = getNextProxy();
+      const headers = generateGooglePlayHeaders();
+      const url = `https://play.google.com/store/apps/developer?id=${devName}&hl=en&gl=us`;
 
-    return data.apps;
+      const res = await axios.get(url, {
+        timeout: 10000,
+        headers,
+        validateStatus: (status) => status < 500,
+      });
+      if (res.status === 404) {
+        return { message: "App not found (404)" };
+      }
+      return res.data;
+    });
+    if (dataName?.message === "App not found (404)") {
+      return dataName;
+    }
+    const { ids, name } = extractDeveloper(dataName, devId);
+    const apps = ids.map((id: string) => ({ appId: id }));
+    return apps;
   }
   const data = await withRetry(async () => {
     const proxy = getNextProxy();
@@ -60,15 +90,15 @@ export async function fetchDev(devId: string, isName: boolean) {
       validateStatus: (status) => status < 500,
     });
     if (res.status === 404) {
-      return {message:"App not found (404)"}
+      return { message: "App not found (404)" };
     }
     return res.data;
   });
   if (data?.message === "App not found (404)") {
     return data;
   }
-  const {ids,name} = extractDeveloper(data,devId);
-  const apps = ids.map((id:string)=>({appId:id}));
+  const { ids, name } = extractDeveloper(data, devId);
+  const apps = ids.map((id: string) => ({ appId: id }));
   return apps;
 }
 

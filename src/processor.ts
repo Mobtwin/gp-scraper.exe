@@ -166,7 +166,7 @@ export async function processDevs(batchSize: number, skip: number) {
         isName=true;
       }
       try {
-        const apps = await fetchDev(devId,isName);
+        const apps = await fetchDev(devId,dev.name,isName);
         if (apps?.message === "App not found (404)") {
           console.log(`⚠️ Dev ${devId} not found or suspended.`);
           updates.push({
