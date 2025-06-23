@@ -38,7 +38,14 @@ async function main() {
 ===========================================
 `);
   }, 60 * 1000);
-  await updateGpDevs();
+  while (stillDevs) {
+    stillDevs =   await updateGpDevs(batchSize,skip);
+    skip += batchSize;
+    processedCount += batchSize;
+  }
+  stillDevs = true;
+  skip = limit * index || 0;
+  processedCount = 0;
   while (stillDevs) {
     stillDevs = await processDevs(batchSize, skip);
     // skip += batchSize;
