@@ -60,10 +60,13 @@ export async function fetchDev(devId: string, isName: boolean) {
       validateStatus: (status) => status < 500,
     });
     if (res.status === 404) {
-      throw new Error("App not found (404)");
+      return {message:"App not found (404)"}
     }
     return res.data;
   });
+  if (data?.message === "App not found (404)") {
+    return data;
+  }
   const {ids,name} = extractDeveloper(data,devId);
   const apps = ids.map((id:string)=>({appId:id}));
   return apps;
