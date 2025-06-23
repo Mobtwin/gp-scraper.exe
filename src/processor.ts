@@ -140,7 +140,10 @@ export async function processApps(batchSize: number, skip: number) {
 // processDevs.ts
 
 export async function processDevs(batchSize: number, skip: number) {
-  const devs = await G_DEVs.find({ updated_at: { $lt: twoDaysAgo },accountState: true }, { _id: 1, name: 1 })
+  const devs = await G_DEVs.find(
+    { updated_at: { $lt: twoDaysAgo }, accountState: true },
+    { _id: 1, name: 1 }
+  )
     .skip(skip)
     .limit(batchSize)
     .lean();
@@ -163,10 +166,10 @@ export async function processDevs(batchSize: number, skip: number) {
         isName = false;
       } else {
         devId = dev.name;
-        isName=true;
+        isName = true;
       }
       try {
-        const apps = await fetchDev(devId,dev.name,isName);
+        const apps = await fetchDev(devId, dev.name, isName);
         if (apps?.message === "App not found (404)") {
           console.log(`⚠️ Dev ${devId} not found or suspended.`);
           updates.push({
@@ -352,5 +355,90 @@ const proccessSingleApp = async (
     );
   } catch (err: any) {
     console.error(`❌ Error processing ${appId}:`, err.message);
+  }
+};
+const BATCH_SIZE = 10000;
+
+export const updateGpDevs = async () => {
+  try {
+    // Load existing devIds from ios_developers into a Set for quick lookup
+    const existingDevIds = new Set<string>();
+    const existingDevNames = new Set<string>();
+    const existingCursor = G_DEVs.find({}, { projection: { _id: 1, name: 1 } });
+    for await (const doc of existingCursor) {
+      existingDevIds.add(doc._id.toString());
+      existingDevNames.add(doc.name.toString());
+    }
+
+    const seen = new Set<string>(); // For filtering duplicates in ios_apps
+    const bulk: any[] = [];
+
+    const cursor = G_Apps.find({}, { devId: 1, devName: 1 }).cursor({
+      batchSize: BATCH_SIZE,
+    });
+
+    let processed = 0;
+
+    for await (const doc of cursor) {
+      const devId = doc.devId?.toString();
+      const devName = doc.devName?.toString();
+
+      if (
+        !devId ||
+        seen.has(devId) ||
+        existingDevIds.has(devId) ||
+        existingDevNames.has(devName)
+      )
+        continue;
+
+      seen.add(devId);
+      processed++;
+
+      console.log(`🔍 Processing devId: ${devId}`);
+      let isName = false;
+      let actualId = devId;
+
+      if (/^[0-9]+$/.test(devId)) {
+        isName = false;
+        actualId = devId;
+      } else {
+        isName = true;
+        actualId = devName;
+      }
+      const apps = await fetchDev(actualId,devName,isName).catch(console.log); //devId , devName and isName
+
+      if (
+        apps?.message === "App not found (404)" ||
+        !apps
+      ) {
+        console.log(`⚠️ Dev ${actualId} not found or suspended.`);
+        bulk.push({ _id: actualId, accountState: false });
+      } else {
+        bulk.push({ _id: actualId, name: apps?.[0]?.developer||devName, accountState: true });
+        console.log(`🆕 New dev found: ${actualId}`);
+      }
+
+      // Insert in batches
+      if (bulk.length >= 100) {
+        await G_DEVs.insertMany(bulk, { ordered: false }).catch(() => {});
+        console.log(`📦 Inserted batch of ${bulk.length}`);
+        bulk.length = 0;
+      }
+
+      // Optional: log progress
+      if (processed % 1000 === 0) {
+        console.log(`⏳ Processed ${processed} unique devIds`);
+      }
+    }
+
+    // Insert remaining items
+    if (bulk.length > 0) {
+      await G_DEVs.insertMany(bulk, { ordered: false }).catch(() => {});
+      console.log(`📦 Inserted final batch of ${bulk.length}`);
+    }
+
+    console.log("✅ Finished processing all devIds.");
+  } catch (err) {
+    console.error("❌ Error during updateIosDevs:", err);
   }
 };

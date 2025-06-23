@@ -1,5 +1,5 @@
 import { connectToDb } from "./db.js";
-import { processApps, processDevs } from "./processor.js";
+import { processApps, processDevs, updateGpDevs } from "./processor.js";
 import dotenv from "dotenv";
 dotenv.config();
 export function getTimePassed(start: Date, end: Date) {
@@ -38,6 +38,7 @@ async function main() {
 ===========================================
 `);
   }, 60 * 1000);
+  await updateGpDevs();
   while (stillDevs) {
     stillDevs = await processDevs(batchSize, skip);
     // skip += batchSize;
