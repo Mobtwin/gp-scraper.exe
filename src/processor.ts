@@ -366,8 +366,8 @@ export const updateGpDevs = async () => {
     const existingDevNames = new Set<string>();
     const existingCursor = G_DEVs.find({}, { projection: { _id: 1, name: 1 } });
     for await (const doc of existingCursor) {
-      existingDevIds.add(doc._id.toString());
-      existingDevNames.add(doc.name.toString());
+      existingDevIds.add(doc._id?.toString());
+      existingDevNames.add(doc.name?.toString());
     }
 
     const seen = new Set<string>(); // For filtering duplicates in ios_apps
