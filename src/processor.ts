@@ -362,13 +362,13 @@ const BATCH_SIZE = 10000;
 export const updateGpDevs = async () => {
   try {
     // Load existing devIds from ios_developers into a Set for quick lookup
-    const existingDevIds = new Set<string>();
-    const existingDevNames = new Set<string>();
-    const existingCursor = G_DEVs.find({}, { projection: { _id: 1, name: 1 } });
-    for await (const doc of existingCursor) {
-      existingDevIds.add(doc._id?.toString());
-      existingDevNames.add(doc.name?.toString());
-    }
+    // const existingDevIds = new Set<string>();
+    // const existingDevNames = new Set<string>();
+    // // const existingCursor = G_DEVs.find({}, { projection: { _id: 1, name: 1 } });
+    // for await (const doc of existingCursor) {
+    //   existingDevIds.add(doc._id?.toString());
+    //   existingDevNames.add(doc.name?.toString());
+    // }
 
     const seen = new Set<string>(); // For filtering duplicates in ios_apps
     const bulk: any[] = [];
@@ -383,13 +383,15 @@ export const updateGpDevs = async () => {
       const devId = doc.devId?.toString();
       const devName = doc.devName?.toString();
 
-      if (
-        !devId ||
-        seen.has(devId) ||
-        existingDevIds.has(devId) ||
-        existingDevNames.has(devName)
-      )
-        continue;
+      if (!devId || seen.has(devId)) continue;
+
+      const exist = await G_DEVs.find({
+        _id: {
+          $in: [devId, devName, devName.split(' ').join('+')],
+        },
+      });
+
+      if (exist.length > 0) continue;
 
       seen.add(devId);
       processed++;
