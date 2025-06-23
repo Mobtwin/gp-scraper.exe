@@ -48,7 +48,7 @@ export async function fetchDev(
       if (
         res.data?.message &&
         res.data?.message !== "App not found (404)" &&
-        (res.data?.message as string).includes("fantasy-land/map")
+        !(res.data?.message as string).includes("fantasy-land/map")
       ) {
         throw new Error(res.data.message);
       }
