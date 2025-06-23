@@ -14,7 +14,7 @@ export async function processApps(batchSize: number, skip: number) {
     .skip(skip)
     .limit(batchSize)
     .lean();
-  if (!apps) {
+  if (apps.length === 0) {
     return false;
   }
   const limit = pLimit(CONCURRENCY);
@@ -145,7 +145,7 @@ export async function processDevs(batchSize: number, skip: number) {
     .limit(batchSize)
     .lean();
 
-  if (!devs) {
+  if (devs.length === 0) {
     return false;
   }
 
@@ -157,13 +157,16 @@ export async function processDevs(batchSize: number, skip: number) {
   const tasks = devs.map((dev) =>
     limit(async () => {
       let devId;
+      let isName = false;
       if (/^[0-9]+$/.test(dev._id)) {
         devId = dev._id;
+        isName = false;
       } else {
         devId = dev.name;
+        isName=true;
       }
       try {
-        const apps = await fetchDev(devId);
+        const apps = await fetchDev(devId,isName);
         if (apps?.message === "App not found (404)") {
           console.log(`⚠️ Dev ${devId} not found or suspended.`);
           updates.push({

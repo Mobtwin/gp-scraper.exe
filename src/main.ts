@@ -25,7 +25,7 @@ async function main() {
   console.log(`configuration: limit: ${limit}, index:${index}, skip:${skip}`);
   const batchSize = 1500;
   let processedCount = 0;
-  let stillDevs = false;
+  let stillDevs = true;
   let stillApps = true;
   const statsInterval = setInterval(() => {
     const { formatted } = getTimePassed(startFun, new Date());
@@ -64,3 +64,15 @@ async function main() {
 }
 
 main().catch(console.error);
+// async function test() {
+//   const developerId = 'Jeedom'; // example ID
+//   const url = `https://play.google.com/store/apps/developer?id=${developerId}&hl=en`;
+//   const response = await axios.get(url, {
+//     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36' },
+    
+//   });
+//   const developer = extractDeveloper(response.data, developerId);
+//   console.log(developer);
+// }
+
+// test().catch(console.error);

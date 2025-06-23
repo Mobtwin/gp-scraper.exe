@@ -2,6 +2,7 @@ import axios from "axios";
 import { getNextProxy } from "./proxies.js";
 import dotenv from "dotenv";
 import { generateGooglePlayHeaders } from "./headers.js";
+import { extractDeveloper } from "./utils.js";
 dotenv.config();
 
 const BASE = process.env.IOS_API;
@@ -28,24 +29,44 @@ export async function fetchApp(appId: string) {
 
   return data;
 }
-export async function fetchDev(devId: string) {
+export async function fetchDev(devId: string, isName: boolean) {
+  if (!isName) {
+    const data = await withRetry(async () => {
+      const proxy = getNextProxy();
+      const headers = generateGooglePlayHeaders();
+      const url = `${BASE}/api/developers/${devId}`;
+
+      const res = await axios.get(url, {
+        timeout: 10000,
+        headers,
+        validateStatus: (status) => status < 500,
+      });
+      if (res.data?.message && res.data?.message !== "App not found (404)") {
+        throw new Error(res.data.message);
+      }
+      return res.data;
+    });
+
+    return data.apps;
+  }
   const data = await withRetry(async () => {
     const proxy = getNextProxy();
     const headers = generateGooglePlayHeaders();
-    const url = `${BASE}/api/developers/${devId}`;
+    const url = `https://play.google.com/store/apps/developer?id=${devId}&hl=en&gl=us`;
 
     const res = await axios.get(url, {
       timeout: 10000,
       headers,
       validateStatus: (status) => status < 500,
     });
-    if (res.data?.message && (res.data?.message !== "App not found (404)")) {
-      throw new Error(res.data.message);
+    if (res.status === 404) {
+      throw new Error("App not found (404)");
     }
     return res.data;
   });
-
-  return data.apps;
+  const {ids,name} = extractDeveloper(data,devId);
+  const apps = ids.map((id:string)=>({appId:id}));
+  return apps;
 }
 
 export async function fetchSimilarApps(appId: string) {
