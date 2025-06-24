@@ -446,7 +446,7 @@ export async function fetchAllUniqueDevIdsWithNames(): Promise<{ devId: string; 
 
     seenDevIds.add(devId);
     uniqueDevs.push({ devId, devName });
-    if (uniqueDevs.length % 10000) {
+    if (uniqueDevs.length % 10000 === 0) {
       console.log("loaded "+uniqueDevs.length+" devIds")
     }
   }
