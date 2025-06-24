@@ -359,12 +359,8 @@ const proccessSingleApp = async (
 };
 const BATCH_SIZE = 10000;
 
-export async function updateGpDevs(batchSize: number, skip: number) {
-  const rawDevs = await G_Apps.find({}, { devId: 1, devName: 1 })
-  .sort({ devId: 1 }) // Required to dedupe efficiently
-  .skip(skip)
-  .limit(batchSize * 3) // Get extra to account for dups
-  .lean();
+export async function updateGpDevs(batchSize: number, skip: number,rawDevs:{devId:string,devName:string}[]) {
+  
 
   if (rawDevs.length === 0) {
     return false;
@@ -376,8 +372,8 @@ export async function updateGpDevs(batchSize: number, skip: number) {
 
   const tasks = rawDevs.map((doc) =>
     limit(async () => {
-      const devId = doc._id?.toString();
-      const devName = doc.devName?.toString();
+      const devId = doc.devId;
+      const devName = doc.devName;
 
       if (!devId || seen.has(devId)) return;
 
@@ -433,4 +429,28 @@ export async function updateGpDevs(batchSize: number, skip: number) {
   }
 
   return true;
+}
+export async function fetchAllUniqueDevIdsWithNames(): Promise<{ devId: string; devName: string }[]> {
+  const seenDevIds = new Set<string>();
+  const uniqueDevs: { devId: string; devName: string }[] = [];
+
+  const cursor = G_Apps.find({}, { devId: 1, devName: 1 })
+    .lean()
+    .cursor();
+
+  for await (const doc of cursor) {
+    const devId = doc.devId?.toString();
+    const devName = doc.devName?.toString() || '';
+
+    if (!devId || seenDevIds.has(devId)) continue;
+
+    seenDevIds.add(devId);
+    uniqueDevs.push({ devId, devName });
+    if (uniqueDevs.length % 10000) {
+      console.log("loaded "+uniqueDevs.length+" devIds")
+    }
+  }
+
+  console.log(`✅ Fetched ${uniqueDevs.length} unique devId+devName pairs from G_Apps`);
+  return uniqueDevs;
 }

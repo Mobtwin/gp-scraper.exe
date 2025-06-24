@@ -1,5 +1,6 @@
 import { connectToDb } from "./db.js";
-import { processApps, processDevs, updateGpDevs } from "./processor.js";
+import { G_Apps } from "./models/schema.js";
+import { fetchAllUniqueDevIdsWithNames, processApps, processDevs, updateGpDevs } from "./processor.js";
 import dotenv from "dotenv";
 dotenv.config();
 export function getTimePassed(start: Date, end: Date) {
@@ -38,8 +39,11 @@ async function main() {
 ===========================================
 `);
   }, 60 * 1000);
+  const devIds: {devId:string,devName:string}[] = await fetchAllUniqueDevIdsWithNames();
+  console.log("fetched all devsIds from g apps "+devIds.length);
   while (stillDevs) {
-    stillDevs =   await updateGpDevs(batchSize,skip);
+    const pagedDevIds = devIds.slice(skip, skip + batchSize);
+    stillDevs = await updateGpDevs(batchSize, skip,pagedDevIds);
     skip += batchSize;
     processedCount += batchSize;
   }
@@ -77,7 +81,7 @@ main().catch(console.error);
 //   const url = `https://play.google.com/store/apps/developer?id=${developerId}&hl=en`;
 //   const response = await axios.get(url, {
 //     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36' },
-    
+
 //   });
 //   const developer = extractDeveloper(response.data, developerId);
 //   console.log(developer);
