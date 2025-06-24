@@ -359,17 +359,15 @@ const proccessSingleApp = async (
 };
 const BATCH_SIZE = 10000;
 
-export async function updateGpDevs(batchSize: number, skip: number) {
-  const rawDevs = await G_Apps.aggregate([
-    {
-      $group: {
-        _id: '$devId',
-        devName: { $first: '$devName' },
-      },
-    },
-    { $skip: skip },
-    { $limit: batchSize },
-  ]);
+export async function updateGpDevs(batchSize: number, skip: number,devIds:string[]) {
+
+
+const rawDevs = await G_Apps.find(
+  { devId: { $in: devIds } },
+  { devId: 1, devName: 1 }
+)
+  .lean();
+
 
   if (rawDevs.length === 0) {
     return false;
