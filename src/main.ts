@@ -39,17 +39,17 @@ async function main() {
 ===========================================
 `);
   }, 60 * 1000);
-  const devIds: {devId:string,devName:string}[] = await fetchAllUniqueDevIdsWithNames();
-  console.log("fetched all devsIds from g apps "+devIds.length);
-  while (stillDevs) {
-    const pagedDevIds = devIds.slice(skip, skip + batchSize);
-    stillDevs = await updateGpDevs(batchSize, skip,pagedDevIds);
-    skip += batchSize;
-    processedCount += batchSize;
-  }
-  stillDevs = true;
-  skip = limit * index || 0;
-  processedCount = 0;
+  // const devIds: {devId:string,devName:string}[] = await fetchAllUniqueDevIdsWithNames();
+  // console.log("fetched all devsIds from g apps "+devIds.length);
+  // while (stillDevs) {
+  //   const pagedDevIds = devIds.slice(skip, skip + batchSize);
+  //   stillDevs = await updateGpDevs(batchSize, skip,pagedDevIds);
+  //   skip += batchSize;
+  //   processedCount += batchSize;
+  // }
+  // stillDevs = true;
+  // skip = limit * index || 0;
+  // processedCount = 0;
   while (stillDevs) {
     stillDevs = await processDevs(batchSize, skip);
     // skip += batchSize;
