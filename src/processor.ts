@@ -53,8 +53,8 @@ export async function processApps(batchSize: number, skip: number) {
               insertOne: {
                 document: {
                   type: dbApp.type=== "GAME" 
-                    ? "old_ios_game"
-                    : "old_ios_app",
+                    ? "old_gp_game"
+                    : "old_gp_app",
                   appId: dbApp._id,
                   appName: dbApp.name,
                   developerId: dbApp.devId,
@@ -80,8 +80,8 @@ export async function processApps(batchSize: number, skip: number) {
               insertOne: {
                 document: {
                   type: dbApp.type=== "GAME" 
-                    ? "old_ios_game"
-                    : "old_ios_app",
+                    ? "old_gp_game"
+                    : "old_gp_app",
                   appId: dbApp._id,
                   appName: dbApp.name,
                   developerId: dbApp.devId,
@@ -135,8 +135,8 @@ export async function processApps(batchSize: number, skip: number) {
               insertOne: {
                 document: {
                   type: appSyntax.type=== "GAME" 
-                    ? "new_ios_game"
-                    : "new_ios_app",
+                    ? "new_gp_game"
+                    : "new_gp_app",
                   appId: appSyntax._id,
                   appName: appSyntax.name,
                   developerId: appSyntax.devId,
@@ -292,8 +292,8 @@ export async function processDevs(batchSize: number, skip: number) {
               insertOne: {
                 document: {
                   type: appSyntax.type=== "GAME" 
-                    ? "new_ios_game"
-                    : "new_ios_app",
+                    ? "new_gp_game"
+                    : "new_gp_app",
                   appId: appSyntax._id,
                   appName: appSyntax.name,
                   developerId: appSyntax.devId,
