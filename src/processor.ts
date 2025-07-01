@@ -6,6 +6,9 @@ import { AppUpdateService } from "./services/update.service.js";
 const CONCURRENCY = 100;
 const twoDaysAgo = new Date(Date.now() - 5 * 60 * 60 * 1000); // 1 days in ms
 const last = new Date();
+const createdAt = new Date();
+const dailyKey = new Date(createdAt);
+dailyKey.setUTCHours(0, 0, 0, 0); // Normalize to start of UTC day
 export async function processApps(batchSize: number, skip: number) {
   const apps = await G_Apps.find(
     { updated_at: { $lt: last } },
@@ -60,6 +63,7 @@ export async function processApps(batchSize: number, skip: number) {
                   developerId: dbApp.devId,
                   developerName: dbApp.devName,
                   relatedTo: appId,
+                  dailyKey,
                   createdAt: new Date(),
                   data: {
                     icon: dbApp.icon,
@@ -87,6 +91,7 @@ export async function processApps(batchSize: number, skip: number) {
                   developerId: dbApp.devId,
                   developerName: dbApp.devName,
                   relatedTo: appId,
+                  dailyKey,
                   createdAt: new Date(),
                   data: {
                     icon: dbApp.icon,
@@ -142,6 +147,7 @@ export async function processApps(batchSize: number, skip: number) {
                   developerId: appSyntax.devId,
                   developerName: appSyntax.devName,
                   relatedTo: appId,
+                  dailyKey,
                   createdAt: new Date(),
                   data: {
                     icon: appSyntax.icon,
@@ -299,6 +305,7 @@ export async function processDevs(batchSize: number, skip: number) {
                   developerId: appSyntax.devId,
                   developerName: appSyntax.devName,
                   relatedTo: null,
+                  dailyKey,
                   createdAt: new Date(),
                   data: {
                     icon: appSyntax.icon,

@@ -655,9 +655,14 @@ const NotificationSchema = new Schema({
   developerId: String,
   developerName: String,
   relatedTo: String, // appId or devId if applicable
+  dailyKey: {
+    type: Date, // Only the YYYY-MM-DD part of createdAt
+    required: true,
+  },  
   metadata: Schema.Types.Mixed // any additional info (e.g. icons, ratings, etc.)
 },{timestamps:true});
-
+NotificationSchema.index({ appId: 1 });
+NotificationSchema.index({ appId: 1, dailyKey: 1 }, { unique: true });
 export const AppNotification = mongoose.model<IAppNotification>("app_notification",NotificationSchema);
 export const MicroScrapper = mongoose.model<IMicroScrapper>("micro_scrapper",microScrapper);
 export const TopChartScrapperUpdate = mongoose.model<ITopChartScrapperUpdate>("top_chart_scrapper_update",topChartScrapperUpdate);
