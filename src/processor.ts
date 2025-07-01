@@ -65,7 +65,7 @@ export async function processApps(batchSize: number, skip: number) {
                   relatedTo: appId,
                   dailyKey,
                   createdAt: new Date(),
-                  data: {
+                  metadata: {
                     icon: dbApp.icon,
                     updated: dbApp.updated,
                     published: false,
@@ -93,7 +93,7 @@ export async function processApps(batchSize: number, skip: number) {
                   relatedTo: appId,
                   dailyKey,
                   createdAt: new Date(),
-                  data: {
+                  metadata: {
                     icon: dbApp.icon,
                     updated: appData.updated,
                     published: true,
@@ -149,7 +149,7 @@ export async function processApps(batchSize: number, skip: number) {
                   relatedTo: appId,
                   dailyKey,
                   createdAt: new Date(),
-                  data: {
+                  metadata: {
                     icon: appSyntax.icon,
                     url: appSyntax.website,
                     price: appSyntax.price,
@@ -307,7 +307,7 @@ export async function processDevs(batchSize: number, skip: number) {
                   relatedTo: null,
                   dailyKey,
                   createdAt: new Date(),
-                  data: {
+                  metadata: {
                     icon: appSyntax.icon,
                     url: appSyntax.website,
                     price: appSyntax.price,
