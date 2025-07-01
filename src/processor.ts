@@ -22,11 +22,17 @@ export async function processApps(batchSize: number, skip: number) {
   const newAppsNotifications: any[] = [];
   const seenNewAppIds = new Set();
   const updates: any[] = [];
+  const updatesNotifications: any[] = [];
   const tasks = apps.map((app) =>
     limit(async () => {
       const appId = app._id;
       try {
         const appData = await fetchApp(appId);
+        const dbApp = await G_Apps.findById(appId);
+        if (!dbApp) {
+          console.log(`⚠️ App ${appId} not found in database.`);
+          return;
+        }
         if (appData?.message === "App not found (404)") {
           // App is suspended — mark it
           updates.push({
@@ -41,15 +47,59 @@ export async function processApps(batchSize: number, skip: number) {
               },
             },
           });
+          // check if it is already suspended
+          if (dbApp.published) {
+            newAppsNotifications.push({
+              insertOne: {
+                document: {
+                  type: dbApp.type=== "GAME" 
+                    ? "old_ios_game"
+                    : "old_ios_app",
+                  appId: dbApp._id,
+                  appName: dbApp.name,
+                  developerId: dbApp.devId,
+                  developerName: dbApp.devName,
+                  relatedTo: appId,
+                  createdAt: new Date(),
+                  data: {
+                    icon: dbApp.icon,
+                    updated: dbApp.updated,
+                    published: false,
+                    released: dbApp.released,
+                  },
+                },
+              },
+            });
+          }
           console.log(`⚠️ App ${appId} marked as suspended.`);
           return;
         }
+        // check if it is already suspended
+          if (!dbApp.published) {
+            newAppsNotifications.push({
+              insertOne: {
+                document: {
+                  type: dbApp.type=== "GAME" 
+                    ? "old_ios_game"
+                    : "old_ios_app",
+                  appId: dbApp._id,
+                  appName: dbApp.name,
+                  developerId: dbApp.devId,
+                  developerName: dbApp.devName,
+                  relatedTo: appId,
+                  createdAt: new Date(),
+                  data: {
+                    icon: dbApp.icon,
+                    updated: appData.updated,
+                    published: true,
+                    released: dbApp.released,
+                  },
+                },
+              },
+            });
+          }
         const updateService = new AppUpdateService();
-        const dbApp = await G_Apps.findById(appId);
-        if (!dbApp) {
-          console.log(`⚠️ App ${appId} not found in database.`);
-          return;
-        }
+        
         const updateOb = updateService.updateTheApp(appData, dbApp);
         console.log(`👌 updated an app: ${appId}`);
         updates.push(updateOb);
@@ -97,7 +147,7 @@ export async function processApps(batchSize: number, skip: number) {
                     icon: appSyntax.icon,
                     url: appSyntax.website,
                     price: appSyntax.price,
-                    categories: appSyntax.categories,
+                    released: appSyntax.released,
                   },
                 },
               },
@@ -132,6 +182,9 @@ export async function processApps(batchSize: number, skip: number) {
     try {
       await G_Apps.bulkWrite(updates, { ordered: false });
       console.log(`💾 Bulk updated ${updates.length} apps`);
+      await AppNotification.bulkWrite(updatesNotifications,{ordered:false});
+
+      updatesNotifications.length = 0; // flush the array
       updates.length = 0; // flush the array
     } catch (err) {
       console.error(`❌ Error in bulk updates:`, err);
