@@ -411,6 +411,16 @@ export interface IConfig extends Document {
   ipv4proxies: Proxy[];
   ipv6proxies: Proxy[];
 }
+export interface IAppNotification{
+  type:string;
+  appId:string;
+  appName:string;
+  developerId:string;
+  developerName:string;
+  metadata:any;
+  createdAt: Date;
+  updatedAt: Date;
+}
 export interface IMicroScrapper extends Document {
   ip: string;
   isRunning: boolean;

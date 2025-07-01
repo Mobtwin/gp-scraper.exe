@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { App, AppStore, AsTopChart, Collection, IConfig, IConstants, Developer, GpTopChart, SteamGame, ITopChartScrapperUpdate, IMicroScrapper } from "../types/model.types";
+import { App, AppStore, AsTopChart, Collection, IConfig, IConstants, Developer, GpTopChart, SteamGame, ITopChartScrapperUpdate, IMicroScrapper, IAppNotification } from "../types/model.types";
 
 export const gAppPreviewSchema = new Schema({
   _id: String,
@@ -648,7 +648,17 @@ const topChartScrapperUpdate = new Schema({
   microScrapperId:{type:Schema.Types.ObjectId,required: true,ref: 'micro_scrapper'},
 
 },{timestamps:true});
+const NotificationSchema = new Schema({
+  type: String, // e.g., 'new_ios_app'
+  appId: String,
+  appName: String,
+  developerId: String,
+  developerName: String,
+  relatedTo: String, // appId or devId if applicable
+  metadata: Schema.Types.Mixed // any additional info (e.g. icons, ratings, etc.)
+},{timestamps:true});
 
+export const AppNotification = mongoose.model<IAppNotification>("app_notification",NotificationSchema);
 export const MicroScrapper = mongoose.model<IMicroScrapper>("micro_scrapper",microScrapper);
 export const TopChartScrapperUpdate = mongoose.model<ITopChartScrapperUpdate>("top_chart_scrapper_update",topChartScrapperUpdate);
 export const G_Apps = mongoose.model<App>("g_apps", appSchema);

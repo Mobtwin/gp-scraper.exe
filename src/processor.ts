@@ -1,4 +1,4 @@
-import { G_Apps, G_DEVs } from "./models/schema.js";
+import { AppNotification, G_Apps, G_DEVs } from "./models/schema.js";
 import { fetchApp, fetchDev, fetchSimilarApps } from "./scrapper.js";
 import pLimit from "p-limit";
 import { AppUpdateService } from "./services/update.service.js";
@@ -19,6 +19,7 @@ export async function processApps(batchSize: number, skip: number) {
   }
   const limit = pLimit(CONCURRENCY);
   const newApps: any[] = [];
+  const newAppsNotifications: any[] = [];
   const seenNewAppIds = new Set();
   const updates: any[] = [];
   const tasks = apps.map((app) =>
@@ -68,7 +69,7 @@ export async function processApps(batchSize: number, skip: number) {
             const similarData = await fetchApp(id);
             if (similarData?.message === "App not found (404)") {
               // App is suspended — mark it
-              console.log(`⚠️ App ${appId} suspended but we dont have it.`);
+              console.log(`⚠️ App ${id} suspended but we dont have it.`);
               return;
             }
             const appSyntax = updateService.createAppSyntax(similarData);
@@ -78,6 +79,27 @@ export async function processApps(batchSize: number, skip: number) {
                 filter: { _id: appSyntax._id },
                 update: { $setOnInsert: appSyntax },
                 upsert: true,
+              },
+            });
+            newAppsNotifications.push({
+              insertOne: {
+                document: {
+                  type: appSyntax.type=== "GAME" 
+                    ? "new_ios_game"
+                    : "new_ios_app",
+                  appId: appSyntax._id,
+                  appName: appSyntax.name,
+                  developerId: appSyntax.devId,
+                  developerName: appSyntax.devName,
+                  relatedTo: appId,
+                  createdAt: new Date(),
+                  data: {
+                    icon: appSyntax.icon,
+                    url: appSyntax.website,
+                    price: appSyntax.price,
+                    categories: appSyntax.categories,
+                  },
+                },
               },
             });
             console.log(`🆕 Discovered new app: ${id}`);
@@ -120,7 +142,9 @@ export async function processApps(batchSize: number, skip: number) {
     try {
       await G_Apps.bulkWrite(newApps, { ordered: false });
       console.log(`💾 Bulk inserted ${newApps.length} new similar apps`);
+      await AppNotification.bulkWrite(newAppsNotifications,{ordered:false});
       newApps.length = 0; // flush the array
+      newAppsNotifications.length = 0; // flush the array
     } catch (err: any) {
       if (
         err.code === 11000 ||
@@ -154,6 +178,7 @@ export async function processDevs(batchSize: number, skip: number) {
 
   const limit = pLimit(50);
   const newApps: any[] = [];
+  const newAppsNotifications: any[] = [];
   const updates: any[] = [];
   const seenAppIds = new Set();
 
@@ -210,6 +235,27 @@ export async function processDevs(batchSize: number, skip: number) {
               upsert: true,
             },
           });
+          newAppsNotifications.push({
+              insertOne: {
+                document: {
+                  type: appSyntax.type=== "GAME" 
+                    ? "new_ios_game"
+                    : "new_ios_app",
+                  appId: appSyntax._id,
+                  appName: appSyntax.name,
+                  developerId: appSyntax.devId,
+                  developerName: appSyntax.devName,
+                  relatedTo: null,
+                  createdAt: new Date(),
+                  data: {
+                    icon: appSyntax.icon,
+                    url: appSyntax.website,
+                    price: appSyntax.price,
+                    categories: appSyntax.categories,
+                  },
+                },
+              },
+            });
 
           console.log(`🆕 New app from ${devId}: ${appId}`);
         }
@@ -235,6 +281,8 @@ export async function processDevs(batchSize: number, skip: number) {
     try {
       await G_Apps.bulkWrite(newApps, { ordered: false });
       console.log(`💾 Bulk inserted ${newApps.length} new apps`);
+      await AppNotification.bulkWrite(newAppsNotifications, { ordered: false });
+      newAppsNotifications.length = 0;
       newApps.length = 0;
     } catch (err: any) {
       if (
@@ -359,9 +407,11 @@ const proccessSingleApp = async (
 };
 const BATCH_SIZE = 10000;
 
-export async function updateGpDevs(batchSize: number, skip: number,rawDevs:{devId:string,devName:string}[]) {
-  
-
+export async function updateGpDevs(
+  batchSize: number,
+  skip: number,
+  rawDevs: { devId: string; devName: string }[]
+) {
   if (rawDevs.length === 0) {
     return false;
   }
@@ -379,7 +429,7 @@ export async function updateGpDevs(batchSize: number, skip: number,rawDevs:{devI
 
       seen.add(devId);
 
-      const variants = [devId, devName, devName?.split(' ').join('+')];
+      const variants = [devId, devName, devName?.split(" ").join("+")];
       const exist = await G_DEVs.exists({ _id: { $in: variants } });
       if (exist) return;
 
@@ -389,7 +439,7 @@ export async function updateGpDevs(batchSize: number, skip: number,rawDevs:{devI
       try {
         const apps = await fetchDev(actualId, devName, isName);
 
-        if (!apps || apps.message === 'App not found (404)') {
+        if (!apps || apps.message === "App not found (404)") {
           console.log(`⚠️ Dev ${actualId} not found or suspended.`);
           inserts.push({
             _id: actualId,
@@ -430,27 +480,29 @@ export async function updateGpDevs(batchSize: number, skip: number,rawDevs:{devI
 
   return true;
 }
-export async function fetchAllUniqueDevIdsWithNames(): Promise<{ devId: string; devName: string }[]> {
+export async function fetchAllUniqueDevIdsWithNames(): Promise<
+  { devId: string; devName: string }[]
+> {
   const seenDevIds = new Set<string>();
   const uniqueDevs: { devId: string; devName: string }[] = [];
 
-  const cursor = G_Apps.find({}, { devId: 1, devName: 1 })
-    .lean()
-    .cursor();
+  const cursor = G_Apps.find({}, { devId: 1, devName: 1 }).lean().cursor();
 
   for await (const doc of cursor) {
     const devId = doc.devId?.toString();
-    const devName = doc.devName?.toString() || '';
+    const devName = doc.devName?.toString() || "";
 
     if (!devId || seenDevIds.has(devId)) continue;
 
     seenDevIds.add(devId);
     uniqueDevs.push({ devId, devName });
     if (uniqueDevs.length % 10000 === 0) {
-      console.log("loaded "+uniqueDevs.length+" devIds")
+      console.log("loaded " + uniqueDevs.length + " devIds");
     }
   }
 
-  console.log(`✅ Fetched ${uniqueDevs.length} unique devId+devName pairs from G_Apps`);
+  console.log(
+    `✅ Fetched ${uniqueDevs.length} unique devId+devName pairs from G_Apps`
+  );
   return uniqueDevs;
 }
