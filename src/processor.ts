@@ -8,7 +8,7 @@ const twoDaysAgo = new Date(Date.now() - 5 * 60 * 60 * 1000); // 1 days in ms
 const last = new Date();
 export async function processApps(batchSize: number, skip: number) {
   const apps = await G_Apps.find(
-    { updated_at: { $lt: twoDaysAgo } },
+    { updated_at: { $lt: last } },
     { _id: 1 }
   ) //{updated_at:{$lt:twoDaysAgo}}
     .skip(skip)
@@ -165,7 +165,7 @@ export async function processApps(batchSize: number, skip: number) {
 
 export async function processDevs(batchSize: number, skip: number) {
   const devs = await G_DEVs.find(
-    { updated_at: { $lt: twoDaysAgo }, accountState: true },
+    { updated_at: { $lt: last }, accountState: true },
     { _id: 1, name: 1 }
   )
     .skip(skip)
