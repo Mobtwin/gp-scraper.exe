@@ -120,7 +120,7 @@ export async function fetchSimilarApps(appId: string) {
 
   if (!data?.data) {
     // Again, no retry — just return empty or throw
-    throw new Error("No similar apps found for " + appId);
+    return []
   }
 
   return data.data;

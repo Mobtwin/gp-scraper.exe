@@ -209,17 +209,19 @@ export async function processApps(batchSize: number, skip: number) {
           });
         }
         // Collect update for main app
-        updates.push({
-          updateOne: {
-            filter: { _id: appId },
-            update: {
-              $set: {
-                similarApps: similarIds,
-                updated_at: new Date(),
+        if (similarIds.length > 0) {
+          updates.push({
+            updateOne: {
+              filter: { _id: appId },
+              update: {
+                $set: {
+                  similarApps: similarIds,
+                  updated_at: new Date(),
+                },
               },
             },
-          },
-        });
+          });
+        }
         console.log(
           `✅ Updated app ${appId} with ${similarIds.length} similar apps`
         );
