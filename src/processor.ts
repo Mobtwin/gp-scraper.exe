@@ -56,8 +56,31 @@ export async function processApps(batchSize: number, skip: number) {
               insertOne: {
                 document: {
                   type: dbApp.type=== "GAME" 
-                    ? "old_gp_game"
-                    : "old_gp_app",
+                    ? "published_gp_game_suspended"
+                    : "published_gp_app_suspended",
+                  appId: dbApp._id,
+                  appName: dbApp.name,
+                  developerId: dbApp.devId,
+                  developerName: dbApp.devName,
+                  relatedTo: appId,
+                  dailyKey,
+                  createdAt: new Date(),
+                  metadata: {
+                    icon: dbApp.icon,
+                    updated: dbApp.updated,
+                    published: false,
+                    released: dbApp.released,
+                  },
+                },
+              },
+            });
+          }else{
+            updatesNotifications.push({
+              insertOne: {
+                document: {
+                  type: dbApp.type=== "GAME" 
+                    ? "suspended_gp_game"
+                    : "suspended_gp_app",
                   appId: dbApp._id,
                   appName: dbApp.name,
                   developerId: dbApp.devId,
@@ -78,31 +101,7 @@ export async function processApps(batchSize: number, skip: number) {
           console.log(`⚠️ App ${appId} marked as suspended.`);
           return;
         }
-        // check if it is already suspended
-          if (!dbApp.published) {
-            updatesNotifications.push({
-              insertOne: {
-                document: {
-                  type: dbApp.type=== "GAME" 
-                    ? "old_gp_game"
-                    : "old_gp_app",
-                  appId: dbApp._id,
-                  appName: dbApp.name,
-                  developerId: dbApp.devId,
-                  developerName: dbApp.devName,
-                  relatedTo: appId,
-                  dailyKey,
-                  createdAt: new Date(),
-                  metadata: {
-                    icon: dbApp.icon,
-                    updated: appData.updated,
-                    published: true,
-                    released: dbApp.released,
-                  },
-                },
-              },
-            });
-          }
+        
         const updateService = new AppUpdateService();
         
         const updateOb = updateService.updateTheApp(appData, dbApp);
@@ -161,7 +160,54 @@ export async function processApps(batchSize: number, skip: number) {
             console.log(`🆕 Discovered new app: ${id}`);
           }
         }
-
+        // check if it is already suspended
+        if (!dbApp.published) {
+          updatesNotifications.push({
+            insertOne: {
+              document: {
+                type: dbApp.type=== "GAME" 
+                  ? "unpublished_gp_game_published"
+                  : "unpublished_gp_app_published",
+                appId: dbApp._id,
+                appName: dbApp.name,
+                developerId: dbApp.devId,
+                developerName: dbApp.devName,
+                relatedTo: appId,
+                dailyKey,
+                createdAt: new Date(),
+                metadata: {
+                  icon: dbApp.icon,
+                  updated: appData.updated,
+                  published: true,
+                  released: dbApp.released,
+                },
+              },
+            },
+          });
+        }else{
+          updatesNotifications.push({
+            insertOne: {
+              document: {
+                type: dbApp.type=== "GAME" 
+                  ? "old_gp_game_updated"
+                  : "old_gp_app_updated",
+                appId: dbApp._id,
+                appName: dbApp.name,
+                developerId: dbApp.devId,
+                developerName: dbApp.devName,
+                relatedTo: appId,
+                dailyKey,
+                createdAt: new Date(),
+                metadata: {
+                  icon: dbApp.icon,
+                  updated: appData.updated,
+                  published: true,
+                  released: dbApp.released,
+                },
+              },
+            },
+          });
+        }
         // Collect update for main app
         updates.push({
           updateOne: {
