@@ -11,7 +11,7 @@ const dailyKey = new Date(createdAt);
 dailyKey.setUTCHours(0, 0, 0, 0); // Normalize to start of UTC day
 export async function processApps(batchSize: number, skip: number) {
   const apps = await G_Apps.find(
-    { updated_at: { $lt: last } },
+    { updated_at: { $lt: dailyKey } },
     { _id: 1 }
   ) //{updated_at:{$lt:twoDaysAgo}}
     .skip(skip)
@@ -52,7 +52,7 @@ export async function processApps(batchSize: number, skip: number) {
           });
           // check if it is already suspended
           if (dbApp.published) {
-            newAppsNotifications.push({
+            updatesNotifications.push({
               insertOne: {
                 document: {
                   type: dbApp.type=== "GAME" 
@@ -80,7 +80,7 @@ export async function processApps(batchSize: number, skip: number) {
         }
         // check if it is already suspended
           if (!dbApp.published) {
-            newAppsNotifications.push({
+            updatesNotifications.push({
               insertOne: {
                 document: {
                   type: dbApp.type=== "GAME" 
@@ -224,7 +224,7 @@ export async function processApps(batchSize: number, skip: number) {
 
 export async function processDevs(batchSize: number, skip: number) {
   const devs = await G_DEVs.find(
-    { updated_at: { $lt: last }, accountState: true },
+    { updated_at: { $lt: dailyKey }, accountState: true },
     { _id: 1, name: 1 }
   )
     .skip(skip)
@@ -310,8 +310,8 @@ export async function processDevs(batchSize: number, skip: number) {
                   metadata: {
                     icon: appSyntax.icon,
                     url: appSyntax.website,
-                    price: appSyntax.price,
-                    categories: appSyntax.categories,
+                    updated: appSyntax.updated,
+                    released: appSyntax.released,
                   },
                 },
               },
