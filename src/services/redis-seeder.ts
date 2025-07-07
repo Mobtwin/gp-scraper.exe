@@ -1,8 +1,8 @@
 import { createClient } from "redis";
-import { AppNotification, G_Apps } from "../models/schema";
+import { AppNotification, G_Apps } from "../models/schema.js";
 import pLimit from "p-limit";
-import { fetchApp, fetchSimilarApps } from "../scrapper";
-import { AppUpdateService } from "./update.service";
+import { fetchApp, fetchSimilarApps } from "../scrapper.js";
+import { AppUpdateService } from "./update.service.js";
 // import { CronJob } from 'cron';
 
 export const redisClient = createClient({ url: "redis://10.3.114.107:6379" });
