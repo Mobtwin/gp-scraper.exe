@@ -50,7 +50,7 @@ async function main() {
 ===========================================
 `);
   }, 60 * 1000);
-  seedAppIds().catch(console.error);
+  await seedAppIds().catch(console.error);
   // const devIds: {devId:string,devName:string}[] = await fetchAllUniqueDevIdsWithNames();
   // console.log("fetched all devsIds from g apps "+devIds.length);
   // while (stillDevs) {

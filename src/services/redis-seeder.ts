@@ -357,9 +357,9 @@ export async function processAppsWithRedis(batchSize: number) {
     try {
       await G_Apps.bulkWrite(updates, { ordered: false });
       console.log(`💾 Bulk updated ${updates.length} apps`);
-      await AppNotification.bulkWrite(updatesNotifications, { ordered: false });
+    //   await AppNotification.bulkWrite(updatesNotifications, { ordered: false });
 
-      updatesNotifications.length = 0; // flush the array
+    //   updatesNotifications.length = 0; // flush the array
       updates.length = 0; // flush the array
     } catch (err) {
       console.error(`❌ Error in bulk updates:`, err);
@@ -370,9 +370,9 @@ export async function processAppsWithRedis(batchSize: number) {
     try {
       await G_Apps.bulkWrite(newApps, { ordered: false });
       console.log(`💾 Bulk inserted ${newApps.length} new similar apps`);
-      await AppNotification.bulkWrite(newAppsNotifications, { ordered: false });
+    //   await AppNotification.bulkWrite(newAppsNotifications, { ordered: false });
       newApps.length = 0; // flush the array
-      newAppsNotifications.length = 0; // flush the array
+    //   newAppsNotifications.length = 0; // flush the array
     } catch (err: any) {
       if (
         err.code === 11000 ||
