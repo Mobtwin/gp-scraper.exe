@@ -5,7 +5,9 @@ import { fetchApp, fetchSimilarApps } from "../scrapper.js";
 import { AppUpdateService } from "./update.service.js";
 // import { CronJob } from 'cron';
 
-export const redisClient = createClient({ url: "redis://default:your_strong_password@100.42.182.147:6379" });
+export const redisClient = createClient({
+  url: "redis://default:your_strong_password@100.42.182.147:6379",
+});
 await redisClient.connect();
 
 // Daily key for tracking processed apps
@@ -357,9 +359,9 @@ export async function processAppsWithRedis(batchSize: number) {
     try {
       await G_Apps.bulkWrite(updates, { ordered: false });
       console.log(`💾 Bulk updated ${updates.length} apps`);
-    //   await AppNotification.bulkWrite(updatesNotifications, { ordered: false });
+      await AppNotification.bulkWrite(updatesNotifications, { ordered: false });
 
-    //   updatesNotifications.length = 0; // flush the array
+      updatesNotifications.length = 0; // flush the array
       updates.length = 0; // flush the array
     } catch (err) {
       console.error(`❌ Error in bulk updates:`, err);
@@ -370,9 +372,9 @@ export async function processAppsWithRedis(batchSize: number) {
     try {
       await G_Apps.bulkWrite(newApps, { ordered: false });
       console.log(`💾 Bulk inserted ${newApps.length} new similar apps`);
-    //   await AppNotification.bulkWrite(newAppsNotifications, { ordered: false });
+      await AppNotification.bulkWrite(newAppsNotifications, { ordered: false });
       newApps.length = 0; // flush the array
-    //   newAppsNotifications.length = 0; // flush the array
+      newAppsNotifications.length = 0; // flush the array
     } catch (err: any) {
       if (
         err.code === 11000 ||
@@ -392,8 +394,11 @@ export async function processAppsWithRedis(batchSize: number) {
     pipeline.sRem(processingKey, appId);
     pipeline.del(`${todayKey}:lock:${appId}`);
   });
-  await pipeline.exec();
-
+  try {
+    const results = await pipeline.exec();
+  } catch (err) {
+    console.error("Pipeline execution failed:", err);
+  }
   return true;
 }
 // // Initialize seeding on server start
