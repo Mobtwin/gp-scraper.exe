@@ -5,7 +5,7 @@ import { fetchApp, fetchSimilarApps } from "../scrapper.js";
 import { AppUpdateService } from "./update.service.js";
 // import { CronJob } from 'cron';
 
-export const redisClient = createClient({ url: "redis://10.3.114.107:6379" });
+export const redisClient = createClient({ url: "redis://default:your_strong_password@100.42.182.147:6379" });
 await redisClient.connect();
 
 // Daily key for tracking processed apps
