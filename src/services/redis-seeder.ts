@@ -392,7 +392,7 @@ export async function processAppsWithRedis(batchSize: number) {
   const pipeline = redisClient.multi();
   batch.forEach((appId) => {
     pipeline.sRem(processingKey, appId);
-    pipeline.del(`${todayKey}:lock:${appId}`);
+    // pipeline.del(`${todayKey}:lock:${appId}`);
   });
   try {
     const results = await pipeline.exec();
