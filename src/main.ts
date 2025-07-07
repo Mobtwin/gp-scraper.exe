@@ -31,7 +31,6 @@ async function main() {
   const startFun = new Date();
   await connectToDb();
   redisClient.on("error", (err) => console.error("Redis error:", err));
-  await redisClient.connect();
   const limit = parseInt(process.env.LIMIT as string);
   const index = parseInt(process.env.INDEX as string);
   let skip = limit * index || 0;
