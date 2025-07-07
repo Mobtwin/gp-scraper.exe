@@ -171,6 +171,9 @@ export const appSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+  lastClaimed: {
+    type: Date,
+  },
   version: {
     type: String,
     required: false,
