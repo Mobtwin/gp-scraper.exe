@@ -141,7 +141,7 @@ export async function processApps(batchSize: number, skip: number) {
                   type: appSyntax.type=== "GAME" 
                     ? "new_gp_game"
                     : "new_gp_app",
-                  appId: appSyntax._id,
+                  appId: id,
                   appName: appSyntax.name,
                   developerId: appSyntax.devId,
                   developerName: appSyntax.devName,
