@@ -382,8 +382,8 @@ export class AppUpdateService {
             updates.simpleFields.screenshots = app.screenshots;
             updates.timeLine.unshift(
               new Change(
-                [dbApp.screenshots],
-                [app.screenshots],
+                [...dbApp.screenshots],
+                [...app.screenshots],
                 "screenshots",
                 "US",
                 "en"
