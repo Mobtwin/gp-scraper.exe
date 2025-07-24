@@ -1,6 +1,14 @@
 import mongoose, { Schema } from "mongoose";
-import { App, AppStore, AsTopChart, Collection, IConfig, IConstants, Developer, GpTopChart, SteamGame, ITopChartScrapperUpdate, IMicroScrapper, IAppNotification } from "../types/model.types";
+import { IAppNotification } from "../../types/model.types.js";
 
+const timeLineEntrySchema = new Schema({
+  date: Date,
+  field: String,
+  before: [String],
+  after: [String],
+  lang: String,
+  country: String,
+});
 export const gAppPreviewSchema = new Schema({
   _id: String,
   rank: Number,
@@ -11,46 +19,123 @@ export const gAppPreviewSchema = new Schema({
   installsExact: Number,
   dailyInstalls: Number,
   released: Date,
-},{suppressReservedKeysWarning: true});
+  timeLine: {type:[timeLineEntrySchema], default: []},
+});
+export const collectionQueryTimeline = new Schema({
+  field: { type: String }, 
+},{_id:false});
+export const collectionQuerySchema = new Schema({
+  installsExact: {
+    gte: { type: Number },
+    lte: { type: Number },
+  },
+  type: { type: String },
+  published: { type: Boolean },
+  dailyInstalls: {
+    gte: { type: Number },
+  },
+  timeLine:{type:collectionQueryTimeline}, // Dot notation for nested field
+  currentVersionReviewsCount: {
+    gte: { type: Number },
+    lte: { type: Number },
+  },
+},{_id:false});
+export const collectionSortSchema = new Schema({
+  released: { type: Number },
 
+},{_id:false});
 export const collectionSchema = new Schema({
   poster: String,
-  name: String,
-  plan: String,
+  name: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
+  plan: [String],
   description: String,
-  filter: String,
+  filter: {
+    type: String,
+    required: true,
+  },
+  filterValues:{
+    limit: { type: Number, required: true, default: 100 },
+    query: { type: collectionQuerySchema },
+    sort: { type: collectionSortSchema },
+  },
+  keywords: [String],
+  tags: [String],
+  logs: {
+    type: [String],
+    default: []
+  },
   apps: {
     type: [gAppPreviewSchema],
     default: [],
   },
-},{suppressReservedKeysWarning: true});
+});
+
+export const asAppPreviewSchema = new Schema({
+  _id: String,
+  rank: Number,
+  previousRank: Number,
+  name: String,
+  icon: String,
+  ratingsValue: Number,
+  released: Date,
+  timeLine: {type:[timeLineEntrySchema], default: []},
+});
+
+export const iosCollectionSchema = new Schema({
+  poster: String,
+  name: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
+  plan: [String],
+  description: String,
+  filter: {
+    type: String,
+    required: true,
+  },
+  filterValues:{
+    limit: { type: Number, required: true, default: 100 },
+    query: { type: collectionQuerySchema },
+    sort: { type: collectionSortSchema },
+  },
+  keywords: [String],
+  tags: [String],
+  logs: {
+    type: [String],
+    default: []
+  },
+  apps: {
+    type: [asAppPreviewSchema],
+    default: [],
+  },
+});
 
 const positionSchema = new Schema({
   _id: String,
   rank: Number,
   date: Date,
-},{suppressReservedKeysWarning: true});
+});
 
-const timeLineEntrySchema = new Schema({
-  date: Date,
-  field: String,
-  before: [String],
-  after: [String],
-  lang: String,
-  country: String,
-},{suppressReservedKeysWarning: true});
+
 
 const subPacakgeSchema = new Schema({
   text: String,
   description: String,
   price: Number,
-},{suppressReservedKeysWarning: true});
+});
 
 const packageSchema = new Schema({
   title: String,
   description: String,
   subs: [subPacakgeSchema],
-},{suppressReservedKeysWarning: true});
+});
 
 export const developerSchema = new Schema({
   _id: {
@@ -83,7 +168,7 @@ export const developerSchema = new Schema({
     type: Date,
     default: Date.now,
   },
-},{suppressReservedKeysWarning: true});
+});
 
 export const appSchema = new Schema({
   _id: {
@@ -104,7 +189,6 @@ export const appSchema = new Schema({
   positions: [positionSchema],
   categories: {
     type: [String],
-    default: [],
     required: false,
   },
   installs: {
@@ -171,9 +255,6 @@ export const appSchema = new Schema({
     type: Date,
     default: Date.now,
   },
-  lastClaimed: {
-    type: Date,
-  },
   version: {
     type: String,
     required: false,
@@ -214,10 +295,6 @@ export const appSchema = new Schema({
     type: [String],
     default: [],
   },
-  collections: {
-    type: [String],
-    default: [],
-  },
   timeLine: {
     type: [timeLineEntrySchema],
     default: [],
@@ -230,117 +307,107 @@ export const appSchema = new Schema({
     type: Date,
     default: Date.now,
   },
-},{suppressReservedKeysWarning: true});
-appSchema.index({ devName: 1 });
-appSchema.index({ name: 1 });
-appSchema.index({ summary: 1 });
+});
 
+appSchema.index({
+  devName: 1,
+  devId: 1,
+});
 
 export const gpTopChartSchema = new Schema({
   _id: String,
   list: [gAppPreviewSchema],
   updated_at: Date,
   created_at: { type: Date, default: Date.now },
-},{suppressReservedKeysWarning: true});
-
-export const asAppPreviewSchema = new Schema({
-  _id: String,
-  rank: Number,
-  previousRank: Number,
-  name: String,
-  icon: String,
-  categories: [String],
-  ratingsCount: Number,
-  released: Date,
-  updated: Date,
-},{suppressReservedKeysWarning: true});
+});
 
 export const asTopChartSchema = new Schema({
   _id: String,
   list: [asAppPreviewSchema],
   updated_at: Date,
   created_at: { type: Date, default: Date.now },
-},{suppressReservedKeysWarning: true});
+});
 
 export const appStoreSchema = new Schema({
-    _id: {
-      type: String,
-      required: true,
-    },
-    pkId: String,
-    name: String,
-    icon: String,
-    description: String,
-    categories: {
-      type: [String],
-      default: [],
-    },
-    primaryCategory: String,
-    contentRating: String,
-    languages: [String],
-    size: Number,
-    requiredOsVersion: String,
-    released: Date,
-    updated: Date,
-    recentChanges: String,
-    version: String,
-    price: Number,
-    currency: String,
-    free: Boolean,
+  _id: {
     type: String,
-    topIn: {
-      type: {
-        _id: String,
-        rank: Number,
-        date: Date
-      }
-    },
-    countries: {
-      type: [String],
-      default: [],
-    },
-    devId: Number,
-    devName: String,
-    website: String,
-    devUrl: String,
-    ratingsValue: Number,
-    currentVersionRatingsValue: Number,
-    currentVersionReviewsCount: Number,
-    screenshots: [String],
-    ipadScreenshots: [String],
-    appletvScreenshots: [String],
-    AppStoreUrl: String,
-    positions: [positionSchema],
-    removed: Date,
-    published: {
-      type: Boolean,
-      default: true,
-    },
-    crawled: {
-      type: Date,
-      default: Date.now,
-    },
-    similarApps: {
-      type: [String],
-      default: [],
-    },
-    timeLine: {
-      type: [timeLineEntrySchema],
-      default: [],
-    },
-    topChartsTimeLine: {
-      type: [timeLineEntrySchema],
-      default: [],
-    },
-    created_at: {
-      type: Date,
-      default: Date.now,
-    },
-    updated_at: {
-      type: Date,
-      default: Date.now,
-    },
-},{suppressReservedKeysWarning: true});
+    required: true,
+  },
+  pkId: String,
+  name: String,
+  icon: String,
+  description: String,
+  categories: {
+    type: [String],
+    default: [],
+  },
+  primaryCategory: String,
+  contentRating: String,
+  languages: [String],
+  size: Number,
+  requiredOsVersion: String,
+  released: Date,
+  updated: Date,
+  recentChanges: String,
+  version: String,
+  price: Number,
+  currency: String,
+  free: Boolean,
+  type: String,
+  topIn: {
+    type: {
+      _id: String,
+      rank: Number,
+      date: Date
+    }
+  },
+  countries: {
+    type: [String],
+    default: [],
+  },
+  devId: Number,
+  devName: String,
+  website: String,
+  devUrl: String,
+  ratingsValue: Number,
+  currentVersionRatingsValue: Number,
+  currentVersionReviewsCount: Number,
+  dailyReviewsCount: Number,
+  screenshots: [String],
+  ipadScreenshots: [String],
+  appletvScreenshots: [String],
+  AppStoreUrl: String,
+  positions: [positionSchema],
+  removed: Date,
+  published: {
+    type: Boolean,
+    default: true,
+  },
+  crawled: {
+    type: Date,
+    default: Date.now,
+  },
+  similarApps: {
+    type: [String],
+    default: [],
+  },
+  timeLine: {
+    type: [timeLineEntrySchema],
+    default: [],
+  },
+  topChartsTimeLine: {
+    type: [timeLineEntrySchema],
+    default: [],
+  },
+  created_at: {
+    type: Date,
+    default: Date.now,
+  },
+  updated_at: {
+    type: Date,
+    default: Date.now,
+  },
+});
 
 appStoreSchema.index({ devName: 1 });
 appStoreSchema.index({ name: 1 });
@@ -457,7 +524,9 @@ export const steamGameSchema = new Schema({
     type: Date,
     default: Date.now,
   },
-},{suppressReservedKeysWarning: true});
+});
+
+steamGameSchema.index({ developers: 1 });
 
 export const analyticsSchema = new Schema({
   _id: String,
@@ -539,18 +608,18 @@ export const analyticsSchema = new Schema({
     type: Date,
     default: Date.now,
   }
-},{suppressReservedKeysWarning: true});
+});
 
 const dataSchema = new mongoose.Schema({
   key: String,
   value: String,
   code: String,
-},{suppressReservedKeysWarning: true});
+});
 
 const map_dataSchema = new mongoose.Schema({
   key: String,
   value: String,
-},{suppressReservedKeysWarning: true});
+});
 
 export const gAppConstantsSchema = new mongoose.Schema({
   clusters: [dataSchema],
@@ -559,7 +628,7 @@ export const gAppConstantsSchema = new mongoose.Schema({
   sort: [map_dataSchema],
   age: [map_dataSchema],
   permission: [map_dataSchema],
-},{suppressReservedKeysWarning: true});
+});
 
 export const appStoreConstantsSchema = new mongoose.Schema({
   collection: [dataSchema],
@@ -567,7 +636,7 @@ export const appStoreConstantsSchema = new mongoose.Schema({
   device: [map_dataSchema],
   sort: [map_dataSchema],
   markets: [map_dataSchema],
-},{suppressReservedKeysWarning: true});
+});
 
 const featureSchema = new Schema({
   status: Boolean,
@@ -576,7 +645,7 @@ const featureSchema = new Schema({
   filterRange: Boolean,
   filterTerm: Boolean,
   sort: Boolean,
-},{suppressReservedKeysWarning: true});
+});
 
 export const authorizationSchema = new Schema({
   _id: String,
@@ -584,12 +653,16 @@ export const authorizationSchema = new Schema({
   googlePlay: featureSchema,
   appStore: featureSchema,
   steam: featureSchema
-},{suppressReservedKeysWarning: true});
+});
 
 const country = new mongoose.Schema({
   name: String,
   code: String,
-},{suppressReservedKeysWarning: true});
+});
+const syncElasticSchema = new mongoose.Schema({
+  ios: {type:Number,required: true},
+  android: {type:Number,required: true},
+});
 
 export const constantsSchema = new Schema({
   g_play: gAppConstantsSchema,
@@ -597,14 +670,15 @@ export const constantsSchema = new Schema({
   steam: String,
   version: Number,
   countries: [country],
-},{suppressReservedKeysWarning: true});
+  syncElastic : syncElasticSchema,
+});
 
 const proxySchema = new Schema({
   host: String,
   port: String,
   username: String,
   password: String,
-},{suppressReservedKeysWarning: true});
+});
 
 const configSchema = new Schema({
   gp_config: {
@@ -635,15 +709,15 @@ const configSchema = new Schema({
   },
   ipv4proxies: [proxySchema],
   ipv6proxies: [proxySchema],
-},{suppressReservedKeysWarning: true});
-const microScrapper = new Schema({
+});
+export const microScrapper = new Schema({
   ip:String,
   isRunning:Boolean,
   runId:{type:String,unique:true},
   success:Boolean
 },{timestamps:true});
 
-const topChartScrapperUpdate = new Schema({
+export const topChartScrapperUpdate = new Schema({
   country:String,
   collection:String,
   category:String,
@@ -651,9 +725,9 @@ const topChartScrapperUpdate = new Schema({
   microScrapperId:{type:Schema.Types.ObjectId,required: true,ref: 'micro_scrapper'},
 
 },{timestamps:true});
-const NotificationSchema = new Schema({
+export const appNotificationSchema = new Schema<IAppNotification>({
   type: String, // e.g., 'new_ios_app'
-  appId: String,
+  appId: {type:String,required:true},
   appName: String,
   developerId: String,
   developerName: String,
@@ -664,18 +738,5 @@ const NotificationSchema = new Schema({
   },  
   metadata: Schema.Types.Mixed // any additional info (e.g. icons, ratings, etc.)
 },{timestamps:true});
-NotificationSchema.index({ appId: 1 });
-NotificationSchema.index({ appId: 1, dailyKey: 1 }, { unique: true });
-export const AppNotification = mongoose.model<IAppNotification>("app_notification",NotificationSchema);
-export const MicroScrapper = mongoose.model<IMicroScrapper>("micro_scrapper",microScrapper);
-export const TopChartScrapperUpdate = mongoose.model<ITopChartScrapperUpdate>("top_chart_scrapper_update",topChartScrapperUpdate);
-export const G_Apps = mongoose.model<App>("g_apps", appSchema);
-export const G_DEVs = mongoose.model<Developer>("g_developers", developerSchema);
-export const G_Collection = mongoose.model<Collection>("g_collections", collectionSchema);
-export const G_TOP_CHART = mongoose.model<GpTopChart>("g_top_chart", gpTopChartSchema);
-export const Ios_Apps = mongoose.model<AppStore>("ios_apps", appStoreSchema);
-export const Ios_DEVs = mongoose.model<Developer>("ios_developers", developerSchema);
-export const Ios_Top_chart = mongoose.model<AsTopChart>("ios_top_chart", asTopChartSchema);
-export const Steam_Games = mongoose.model<SteamGame>("steam_games", steamGameSchema);
-export const Constants = mongoose.model<IConstants>("constants", constantsSchema);
-export const Config = mongoose.model<IConfig>("config", configSchema);
+appNotificationSchema.index({ appId: 1 });
+appNotificationSchema.index({ appId: 1, dailyKey: 1,type:1 }, { unique: true });

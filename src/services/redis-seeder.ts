@@ -1,8 +1,9 @@
 import { createClient } from "redis";
-import { AppNotification, G_Apps } from "../models/schema.js";
 import pLimit from "p-limit";
 import { fetchApp, fetchSimilarApps } from "../scrapper.js";
 import { AppUpdateService } from "./update.service.js";
+import { AppNotification, G_Apps } from "../database/mobtwin/models.js";
+import { App } from "../types/model.types.js";
 // import { CronJob } from 'cron';
 
 export const redisClient = createClient({
@@ -226,7 +227,7 @@ export async function processAppsWithRedis(batchSize: number) {
 
         const updateService = new AppUpdateService();
 
-        const updateOb = updateService.updateTheApp(appData, dbApp);
+        const updateOb = updateService.updateTheApp(appData, dbApp as App);
         console.log(`👌 updated an app: ${appId}`);
         updates.push(updateOb);
         // Fetch similar apps from separate endpoint

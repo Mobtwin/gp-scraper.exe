@@ -103,8 +103,8 @@ export async function processApps(batchSize: number, skip: number) {
         }
         
         const updateService = new AppUpdateService();
-        
-        const updateOb = updateService.updateTheApp(appData, dbApp);
+
+        const updateOb = updateService.updateTheApp(appData, dbApp as App);
         console.log(`👌 updated an app: ${appId}`);
         updates.push(updateOb);
         // Fetch similar apps from separate endpoint
@@ -236,7 +236,7 @@ export async function processApps(batchSize: number, skip: number) {
     try {
       await G_Apps.bulkWrite(updates, { ordered: false });
       console.log(`💾 Bulk updated ${updates.length} apps`);
-      await AppNotification.bulkWrite(updatesNotifications,{ordered:false});
+      await AppNotification.bulkWrite(updatesNotifications, { ordered: false });
 
       updatesNotifications.length = 0; // flush the array
       updates.length = 0; // flush the array
@@ -249,7 +249,7 @@ export async function processApps(batchSize: number, skip: number) {
     try {
       await G_Apps.bulkWrite(newApps, { ordered: false });
       console.log(`💾 Bulk inserted ${newApps.length} new similar apps`);
-      await AppNotification.bulkWrite(newAppsNotifications,{ordered:false});
+      await AppNotification.bulkWrite(newAppsNotifications, { ordered: false });
       newApps.length = 0; // flush the array
       newAppsNotifications.length = 0; // flush the array
     } catch (err: any) {
@@ -271,7 +271,7 @@ export async function processApps(batchSize: number, skip: number) {
 // processDevs.ts
 
 export async function processDevs(batchSize: number, skip: number) {
-  const devs = await G_DEVs.find(
+  const devs = await G_Developers.find(
     { updated_at: { $lt: dailyKey }, accountState: true },
     { _id: 1, name: 1 }
   )
@@ -300,8 +300,12 @@ export async function processDevs(batchSize: number, skip: number) {
         devId = dev.name;
         isName = true;
       }
+      if (!devId) {
+        console.log("dev id is null returning ❌");
+        return;
+      }
       try {
-        const apps = await fetchDev(devId, dev.name, isName);
+        const apps = await fetchDev(devId, dev.name!, isName);
         if (apps?.message === "App not found (404)") {
           console.log(`⚠️ Dev ${devId} not found or suspended.`);
           updates.push({
@@ -406,7 +410,7 @@ export async function processDevs(batchSize: number, skip: number) {
   }
   if (updates.length) {
     try {
-      await G_DEVs.bulkWrite(updates, { ordered: false });
+      await G_Developers.bulkWrite(updates, { ordered: false });
       console.log(`💾 Bulk updated ${updates.length} devs`);
       updates.length = 0;
     } catch (err: any) {
@@ -460,7 +464,7 @@ const proccessSingleApp = async (
       console.log(`⚠️ App ${appId} not found in database.`);
       return;
     }
-    const updateOb = updateService.updateTheApp(appData, dbApp);
+    const updateOb = updateService.updateTheApp(appData, dbApp as App);
     console.log(`👌 updated an app: ${appId}`);
     updates.push(updateOb);
     // Fetch similar apps from separate endpoint
@@ -538,7 +542,7 @@ export async function updateGpDevs(
       seen.add(devId);
 
       const variants = [devId, devName, devName?.split(" ").join("+")];
-      const exist = await G_DEVs.exists({ _id: { $in: variants } });
+      const exist = await G_Developers.exists({ _id: { $in: variants } });
       if (exist) return;
 
       let isName = !/^[0-9]+$/.test(devId);
@@ -571,7 +575,7 @@ export async function updateGpDevs(
 
   if (inserts.length) {
     try {
-      await G_DEVs.insertMany(inserts, { ordered: false });
+      await G_Developers.insertMany(inserts, { ordered: false });
       console.log(`📦 Inserted ${inserts.length} new devs`);
     } catch (err: any) {
       if (

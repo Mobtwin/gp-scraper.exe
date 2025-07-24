@@ -1,6 +1,5 @@
 // src/services/app-update.service.ts
-import { G_Apps } from "../models/schema.js";
-import { App as GApp } from "../types/model.types";
+import { App as GApp } from "../types/model.types.js";
 export const APP_CATEGORIES: string[] = [
   "Art and Design",
   "Auto and Vehicles",

@@ -1,9 +1,8 @@
-import { connectToDb } from "./db.js";
-import { G_Apps } from "./models/schema.js";
 import {
   fetchAllUniqueDevIdsWithNames,
   processApps,
   processDevs,
+  processSingleApplication,
   updateGpDevs,
 } from "./processor.js";
 import dotenv from "dotenv";
@@ -29,7 +28,7 @@ export function getTimePassed(start: Date, end: Date) {
 }
 async function main() {
   const startFun = new Date();
-  await connectToDb();
+  // await connectToDb();
   redisClient.on("error", (err) => console.error("Redis error:", err));
   const limit = parseInt(process.env.LIMIT as string);
   const index = parseInt(process.env.INDEX as string);
@@ -51,6 +50,7 @@ async function main() {
 `);
   }, 60 * 1000);
   await seedAppIds().catch(console.error);
+  // await processSingleApplication();
   // const devIds: {devId:string,devName:string}[] = await fetchAllUniqueDevIdsWithNames();
   // console.log("fetched all devsIds from g apps "+devIds.length);
   // while (stillDevs) {
@@ -59,11 +59,6 @@ async function main() {
   //   skip += batchSize;
   //   processedCount += batchSize;
   // }
-  while (true) {
-    const result = await processAppsWithRedis(1500); // Batch size 100
-    if (result === "COMPLETE") break;
-    if (!result) await new Promise((r) => setTimeout(r, 5000)); // Wait if empty
-  }
   stillDevs = true;
   skip = limit * index || 0;
   processedCount = 0;
@@ -71,6 +66,11 @@ async function main() {
     stillDevs = await processDevs(batchSize, skip);
     // skip += batchSize;
     processedCount += batchSize;
+  }
+  while (true) {
+    const result = await processAppsWithRedis(1500); // Batch size 100
+    if (result === "COMPLETE") break;
+    if (!result) await new Promise((r) => setTimeout(r, 5000)); // Wait if empty
   }
   skip = limit * index || 0;
   processedCount = 0;

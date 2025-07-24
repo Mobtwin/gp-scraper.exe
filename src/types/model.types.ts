@@ -67,7 +67,7 @@ export interface Developer extends Document {
 export interface App extends Document {
   _id: string;
   name: string;
-  summary: string;
+  summary?: string;
   icon: string;
   positions: Position[];
   categories: string[];
@@ -130,7 +130,6 @@ export interface App extends Document {
   devCountry: string;
   similarApps: string[];
   screenshots: string[];
-  collections: string[];
   timeLine: TimeLineEntry[];
   created_at: Date;
   updated_at: Date;
@@ -417,6 +416,8 @@ export interface IAppNotification{
   appName:string;
   developerId:string;
   developerName:string;
+  relatedTo:string;
+  dailyKey:Date;
   metadata:any;
   createdAt: Date;
   updatedAt: Date;

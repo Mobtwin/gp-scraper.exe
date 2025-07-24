@@ -9,13 +9,10 @@ const BASE = process.env.IOS_API;
 
 export async function fetchApp(appId: string) {
   const data = await withRetry(async () => {
-    const proxy = getNextProxy();
-    const headers = generateGooglePlayHeaders();
     const url = `${BASE}/api/apps/${appId}`;
 
     const res = await axios.get(url, {
       timeout: 10000,
-      headers,
       validateStatus: (status) => status < 500,
     });
 
