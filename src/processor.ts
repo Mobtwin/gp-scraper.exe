@@ -623,3 +623,250 @@ export async function fetchAllUniqueDevIdsWithNames(): Promise<
   );
   return uniqueDevs;
 }
+
+export const processSingleApplication = async () => {
+  const newApps: any[] = [];
+  const newAppsNotifications: any[] = [];
+  const seenNewAppIds = new Set();
+  const updates: any[] = [];
+  const updatesNotifications: any[] = [];
+  const appId = "com.noorgames.joinnumbers";
+  try {
+    const appData = await fetchApp(appId);
+    const dbApp = await G_Apps.findById(appId);
+    if (!dbApp) {
+      console.log(`⚠️ App ${appId} not found in database.`);
+      return;
+    }
+    if (appData?.message === "App not found (404)") {
+      // App is suspended — mark it
+      updates.push({
+        updateOne: {
+          filter: { _id: appId },
+          update: {
+            $set: {
+              removed: new Date(),
+              updated_at: new Date(),
+              published: false,
+            },
+          },
+        },
+      });
+      // check if it is already suspended
+      if (dbApp.published) {
+        updatesNotifications.push({
+          insertOne: {
+            document: {
+              type:
+                dbApp.type === "GAME"
+                  ? "published_gp_game_suspended"
+                  : "published_gp_app_suspended",
+              appId: dbApp._id,
+              appName: dbApp.name,
+              developerId: dbApp.devId,
+              developerName: dbApp.devName,
+              relatedTo: appId,
+              dailyKey,
+              createdAt: new Date(),
+              metadata: {
+                icon: dbApp.icon,
+                updated: dbApp.updated,
+                published: false,
+                released: dbApp.released,
+              },
+            },
+          },
+        });
+      } else {
+        updatesNotifications.push({
+          insertOne: {
+            document: {
+              type:
+                dbApp.type === "GAME"
+                  ? "suspended_gp_game"
+                  : "suspended_gp_app",
+              appId: dbApp._id,
+              appName: dbApp.name,
+              developerId: dbApp.devId,
+              developerName: dbApp.devName,
+              relatedTo: appId,
+              dailyKey,
+              createdAt: new Date(),
+              metadata: {
+                icon: dbApp.icon,
+                updated: dbApp.updated,
+                published: false,
+                released: dbApp.released,
+              },
+            },
+          },
+        });
+      }
+      console.log(`⚠️ App ${appId} marked as suspended.`);
+      return;
+    }
+
+    const updateService = new AppUpdateService();
+
+    const updateOb = updateService.updateTheApp(appData, dbApp as App);
+    console.log(`👌 updated an app: ${appId}`);
+    updates.push(updateOb);
+    // Fetch similar apps from separate endpoint
+    const similar = await fetchSimilarApps(appId);
+
+    const similarIds: string[] = [];
+
+    for (const similarApp of similar || []) {
+      const id = similarApp.appId;
+      if (!id) continue;
+
+      similarIds.push(id);
+
+      const exists = await G_Apps.exists({ _id: id });
+      if (!exists && !seenNewAppIds.has(id)) {
+        const similarData = await fetchApp(id);
+        if (similarData?.message === "App not found (404)") {
+          // App is suspended — mark it
+          console.log(`⚠️ App ${id} suspended but we dont have it.`);
+          return;
+        }
+        console.log(similarData)
+        const appSyntax = updateService.createAppSyntax(similarData);
+        console.log(appSyntax)
+        seenNewAppIds.add(id);
+        newApps.push({
+          updateOne: {
+            filter: { _id: appSyntax._id },
+            update: { $setOnInsert: appSyntax },
+            upsert: true,
+          },
+        });
+        newAppsNotifications.push({
+          insertOne: {
+            document: {
+              type: appSyntax.type === "GAME" ? "new_gp_game" : "new_gp_app",
+              appId: id,
+              appName: appSyntax.name,
+              developerId: appSyntax.devId,
+              developerName: appSyntax.devName,
+              relatedTo: appId,
+              dailyKey,
+              createdAt: new Date(),
+              metadata: {
+                icon: appSyntax.icon,
+                url: appSyntax.website,
+                price: appSyntax.price,
+                released: appSyntax.released,
+              },
+            },
+          },
+        });
+        console.log(`🆕 Discovered new app: ${id}`);
+      }
+    }
+    // check if it is already suspended
+    if (!dbApp.published) {
+      updatesNotifications.push({
+        insertOne: {
+          document: {
+            type:
+              dbApp.type === "GAME"
+                ? "unpublished_gp_game_published"
+                : "unpublished_gp_app_published",
+            appId: dbApp._id,
+            appName: dbApp.name,
+            developerId: dbApp.devId,
+            developerName: dbApp.devName,
+            relatedTo: appId,
+            dailyKey,
+            createdAt: new Date(),
+            metadata: {
+              icon: dbApp.icon,
+              updated: appData.updated,
+              published: true,
+              released: dbApp.released,
+            },
+          },
+        },
+      });
+    } else {
+      updatesNotifications.push({
+        insertOne: {
+          document: {
+            type:
+              dbApp.type === "GAME"
+                ? "old_gp_game_updated"
+                : "old_gp_app_updated",
+            appId: dbApp._id,
+            appName: dbApp.name,
+            developerId: dbApp.devId,
+            developerName: dbApp.devName,
+            relatedTo: appId,
+            dailyKey,
+            createdAt: new Date(),
+            metadata: {
+              icon: dbApp.icon,
+              updated: appData.updated,
+              published: true,
+              released: dbApp.released,
+            },
+          },
+        },
+      });
+    }
+    // Collect update for main app
+    if (similarIds.length > 0) {
+      updates.push({
+        updateOne: {
+          filter: { _id: appId },
+          update: {
+            $set: {
+              similarApps: similarIds,
+              updated_at: new Date(),
+            },
+          },
+        },
+      });
+    }
+    console.log(
+      `✅ Updated app ${appId} with ${similarIds.length} similar apps`
+    );
+  } catch (err: any) {
+    console.error(`❌ Error processing ${appId}:`, err.message);
+  }
+  if (updates.length) {
+    try {
+      await G_Apps.bulkWrite(updates, { ordered: false });
+      console.log(`💾 Bulk updated ${updates.length} apps`);
+      const res = await AppNotification.bulkWrite(updatesNotifications, { ordered: false });
+      console.log({noti:res})
+      updatesNotifications.length = 0; // flush the array
+      updates.length = 0; // flush the array
+    } catch (err) {
+      console.error(`❌ Error in bulk updates:`, err);
+    }
+  }
+
+  if (newApps.length) {
+    try {
+      const res2 = await G_Apps.bulkWrite(newApps, { ordered: false });
+      console.log(res2)
+      console.log(`💾 Bulk inserted ${newApps.length} new similar apps`);
+      await AppNotification.bulkWrite(newAppsNotifications, { ordered: false });
+      newApps.length = 0; // flush the array
+      newAppsNotifications.length = 0; // flush the array
+    } catch (err: any) {
+      if (
+        err.code === 11000 ||
+        err.writeErrors?.some((e: any) => e.code === 11000)
+      ) {
+        console.warn(
+          `⚠️ Some apps already existed — ignoring duplicate key errors`
+        );
+      } else {
+        console.error(`❌ Unexpected error in insertMany:`, err);
+        throw err; // Re-throw non-duplicate errors
+      }
+    }
+  }
+};
