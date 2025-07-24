@@ -298,7 +298,7 @@ export async function processDevs(batchSize: number, skip: number) {
     limit(async () => {
       let devId;
       let isName = false;
-      if (/^[0-9]+$/.test(dev._id)) {
+      if (/^[0-9]+$/.test(dev._id || "false")) {
         devId = dev._id;
         isName = false;
       } else {
