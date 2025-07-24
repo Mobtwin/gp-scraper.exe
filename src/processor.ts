@@ -1,7 +1,12 @@
-import { AppNotification, G_Apps, G_DEVs } from "./models/schema.js";
 import { fetchApp, fetchDev, fetchSimilarApps } from "./scrapper.js";
 import pLimit from "p-limit";
 import { AppUpdateService } from "./services/update.service.js";
+import {
+  AppNotification,
+  G_Apps,
+  G_Developers,
+} from "./database/mobtwin/models.js";
+import { App } from "./types/model.types.js";
 
 const CONCURRENCY = 100;
 const twoDaysAgo = new Date(Date.now() - 5 * 60 * 60 * 1000); // 1 days in ms
